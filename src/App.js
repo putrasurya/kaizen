@@ -8,16 +8,12 @@ const { Title } = Typography;
 function App() {
   const task = useTask();
 
-  const hourSpent = () => {
-    return Math.floor(
-      task.tasks.reduce((acc, cur) => acc + cur.minutesSpent, 0) / 60
-    );
-  };
-
   const totalHour = () => {
-    return Math.ceil(
-      task.tasks.reduce((acc, cur) => acc + cur.minutes, 0) / 60
+    const total = Math.ceil(
+      task.tasks.reduce((acc, cur) => acc + cur.seconds, 0) / 3600
     );
+    const suffix = total > 1 ? "hours" : "hour";
+    return `${total} ${suffix} to focus`;
   };
 
   return (
@@ -32,7 +28,7 @@ function App() {
             </Col>
             <Col>
               <Title level={4} style={{ fontWeight: 400 }}>
-                Time spent: {hourSpent()}/{totalHour()} hours
+                {totalHour()}
               </Title>
             </Col>
           </Row>
