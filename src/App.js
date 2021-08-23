@@ -1,4 +1,5 @@
 import { Col, Row, Typography, Button, Card, Space } from 'antd';
+import { PauseCircleFilled, PlayCircleFilled, PlusOutlined } from '@ant-design/icons'
 
 const { Text, Title } = Typography;
 
@@ -11,14 +12,14 @@ function App() {
             <Col><Title level={2} style={{fontWeight: 300}}>My Timer</Title></Col>
             <Col><Title level={4} style={{fontWeight: 400}}>Time spent: 12/20 hours</Title></Col>
           </Row>
-          <Button size="large" block={true} type='dashed' className='margin-bottom-1'>+ Add Timer Task</Button>
+          <Button size="large" block={true} type='dashed' className='margin-bottom-1' icon={<PlusOutlined />}>Add Timer Task</Button>
           <Card className='margin-top-1' size='small'>
             <Row justify='space-between' align='middle'>
               <Col>Ngerjain pr anak ku</Col>
               <Col>
                 <Space align='center' size='middle'>
                   <Title level={3} className='no-margin-important'>2:00</Title>
-                  <Button size='small'>Play</Button>
+                  <Button icon={<PauseCircleFilled />} />
                 </Space>
               </Col>
             </Row>
@@ -29,7 +30,7 @@ function App() {
               <Col>
                 <Space align='center' size='middle'>
                   <Title level={3} className='no-margin-important'>2:00</Title>
-                  <Button size='small'>Play</Button>
+                  <Button icon={<PlayCircleFilled />} />
                 </Space>
               </Col>
             </Row>
