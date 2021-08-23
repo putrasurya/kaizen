@@ -1,0 +1,70 @@
+import { Button, Modal, Form, Input, Radio } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
+import { useState } from "react";
+import { useForm } from "antd/lib/form/Form";
+
+const { Item } = Form;
+
+function AddTask({ taskHook }) {
+  const [show, setShow] = useState(false);
+  const [form] = useForm();
+
+  const timeOptions = [
+    { label: "1H", value: 60 },
+    { label: "2H", value: 120 },
+    { label: "3H", value: 180 },
+    { label: "4H", value: 240 },
+    { label: "5H", value: 300 },
+  ];
+
+  const addingTask = (values) => {
+    taskHook.addTask(values.title, values.minutes);
+    setShow(false);
+    form.resetFields();
+  };
+
+  return (
+    <>
+      <Button
+        size="large"
+        block={true}
+        type="dashed"
+        className="margin-bottom-1"
+        icon={<PlusOutlined />}
+        onClick={() => setShow(true)}
+      >
+        Add Timer Task
+      </Button>
+      <Modal
+        visible={show}
+        width={312}
+        title="Add Timer Task"
+        onCancel={() => {
+          setShow(false);
+          form.resetFields();
+        }}
+        onOk={() => form.submit()}
+      >
+        <Form
+          form={form}
+          size="large"
+          onFinish={addingTask}
+          initialValues={{ minutes: 60 }}
+        >
+          <Item name="title" required={true}>
+            <Input placeholder="eg. Crafting Hydroponic" />
+          </Item>
+          <Item name="minutes" required={true}>
+            <Radio.Group
+              options={timeOptions}
+              optionType="button"
+              buttonStyle="solid"
+            />
+          </Item>
+        </Form>
+      </Modal>
+    </>
+  );
+}
+
+export default AddTask;
