@@ -16,7 +16,12 @@ function TaskItem({ task }) {
         <Col>{task.title}</Col>
         <Col>
           <Space align="center" size="middle">
-            <Countdown play={play} seconds={task.seconds} />
+            <Countdown
+              id={task.id}
+              play={play}
+              seconds={task.seconds}
+              secondsSpent={task.secondsSpent}
+            />
             <Button icon={buttonIcon()} onClick={() => setPlay(!play)} />
           </Space>
         </Col>
