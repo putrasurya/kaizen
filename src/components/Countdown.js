@@ -7,6 +7,7 @@ function Countdown({ taskHook, task }) {
   const [hour, setHour] = useState(0);
   const [minute, setMinute] = useState(0);
   const [second, setSecond] = useState(59);
+  const timeout = useRef();
 
   useEffect(() => {
     const timeleft = task.minutes - task.minutesSpent;
@@ -19,15 +20,20 @@ function Countdown({ taskHook, task }) {
       (task.minutes <= task.minutesSpent && second <= 0) ||
       false === task.play
     ) {
+      clearTimeout(timeout.current);
       return;
     }
     if (second <= 0) {
       setSecond(59);
       taskHook.oneMinuteSpent(task.id);
     }
-    setTimeout(() => {
+    timeout.current = setTimeout(() => {
       setSecond((sec) => --sec);
     }, 1000);
+
+    return () => {
+      clearTimeout(timeout.current);
+    };
   }, [second, task, taskHook]);
 
   return (

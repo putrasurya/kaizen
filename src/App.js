@@ -8,6 +8,18 @@ const { Title } = Typography;
 function App() {
   const task = useTask();
 
+  const hourSpent = () => {
+    return Math.floor(
+      task.tasks.reduce((acc, cur) => acc + cur.minutesSpent, 0) / 60
+    );
+  };
+
+  const totalHour = () => {
+    return Math.ceil(
+      task.tasks.reduce((acc, cur) => acc + cur.minutes, 0) / 60
+    );
+  };
+
   return (
     <>
       <Row className="margin-top-2">
@@ -20,7 +32,7 @@ function App() {
             </Col>
             <Col>
               <Title level={4} style={{ fontWeight: 400 }}>
-                Time spent: 12/20 hours
+                Time spent: {hourSpent()}/{totalHour()} hours
               </Title>
             </Col>
           </Row>
