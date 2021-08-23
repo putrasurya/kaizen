@@ -34,8 +34,8 @@ function App() {
             </Col>
           </Row>
           <AddTask />
-          {tasks.map((task, key) => (
-            <TaskItem key={key} task={task} />
+          {tasks.map((task) => (
+            <TaskItem key={task.id} task={task} />
           ))}
         </Col>
       </Row>
