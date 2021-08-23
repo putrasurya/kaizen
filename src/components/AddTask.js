@@ -10,15 +10,15 @@ function AddTask({ taskHook }) {
   const [form] = useForm();
 
   const timeOptions = [
-    { label: "1H", value: 60 },
-    { label: "2H", value: 120 },
-    { label: "3H", value: 180 },
-    { label: "4H", value: 240 },
-    { label: "5H", value: 300 },
+    { label: "1H", value: 60 * 60 * 1 },
+    { label: "2H", value: 60 * 60 * 2 },
+    { label: "3H", value: 60 * 60 * 3 },
+    { label: "4H", value: 60 * 60 * 4 },
+    { label: "5H", value: 60 * 60 * 5 },
   ];
 
   const addingTask = (values) => {
-    taskHook.addTask(values.title, values.minutes);
+    taskHook.addTask(values.title, values.seconds);
     setShow(false);
     form.resetFields();
   };
@@ -49,12 +49,12 @@ function AddTask({ taskHook }) {
           form={form}
           size="large"
           onFinish={addingTask}
-          initialValues={{ minutes: 60 }}
+          initialValues={{ seconds: 60 * 60 }}
         >
           <Item name="title" required={true}>
-            <Input placeholder="eg. Crafting Hydroponic" />
+            <Input placeholder="eg. Crafting Hydroponic Frame" />
           </Item>
-          <Item name="minutes" required={true}>
+          <Item name="seconds" required={true}>
             <Radio.Group
               options={timeOptions}
               optionType="button"

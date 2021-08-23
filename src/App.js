@@ -1,7 +1,7 @@
 import { Col, Row, Typography } from "antd";
 import useTask from "./hooks/useTask";
 import AddTask from "./components/AddTask";
-import TaskList from "./components/TaskList";
+import TaskItem from "./components/TaskItem";
 
 const { Title } = Typography;
 
@@ -37,7 +37,9 @@ function App() {
             </Col>
           </Row>
           <AddTask taskHook={task} />
-          <TaskList taskHook={task} />
+          {task.tasks.map((_task) => (
+            <TaskItem task={_task} />
+          ))}
         </Col>
       </Row>
     </>
