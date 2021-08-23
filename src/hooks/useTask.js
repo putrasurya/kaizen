@@ -1,58 +1,43 @@
-import { useState } from "react";
+import { useReducer } from "react";
+
+function reducer(state, action) {
+  const { type, payload } = action;
+  switch (type) {
+    case "add": {
+      const task = {
+        id: new Date().getTime(),
+        title: payload.title,
+        seconds: payload.seconds,
+        secondsSpent: payload.secondsSpent,
+        play: payload.play,
+      };
+      return [task, ...state];
+    }
+
+    default: {
+      return state;
+    }
+  }
+}
 
 function useTask() {
-  const [tasks, setTasks] = useState([]);
+  const [state, dispatch] = useReducer(reducer, []);
 
-  const addTask = (title, minutes, minutesSpent = 0, play = false) => {
-    const task = {
-      id: new Date().getTime(),
-      title,
-      minutes,
-      minutesSpent,
-      play,
-    };
-    setTasks([task, ...tasks]);
-  };
-
-  const playTask = (id) => {
-    const updateTasks = tasks.map((task) => {
-      if (task.id !== id) return task;
-      return {
-        ...task,
-        play: true,
-      };
+  const addTask = (title, seconds, secondsSpent = 0, play = false) => {
+    dispatch({
+      type: "add",
+      payload: {
+        title,
+        seconds,
+        secondsSpent,
+        play,
+      },
     });
-    setTasks(updateTasks);
-  };
-
-  const pauseTask = (id) => {
-    const updateTasks = tasks.map((task) => {
-      if (task.id !== id) return task;
-      return {
-        ...task,
-        play: false,
-      };
-    });
-    setTasks(updateTasks);
-  };
-
-  const oneMinuteSpent = (id) => {
-    const updateTasks = tasks.map((task) => {
-      if (task.id !== id) return task;
-      return {
-        ...task,
-        minutesSpent: ++task.minutesSpent,
-      };
-    });
-    setTasks(updateTasks);
   };
 
   return {
-    tasks,
+    tasks: state,
     addTask,
-    playTask,
-    pauseTask,
-    oneMinuteSpent,
   };
 }
 

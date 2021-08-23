@@ -1,23 +1,19 @@
 import { Col, Row, Typography } from "antd";
 import useTask from "./hooks/useTask";
 import AddTask from "./components/AddTask";
-import TaskList from "./components/TaskList";
+import TaskItem from "./components/TaskItem";
 
 const { Title } = Typography;
 
 function App() {
   const task = useTask();
 
-  const hourSpent = () => {
-    return Math.floor(
-      task.tasks.reduce((acc, cur) => acc + cur.minutesSpent, 0) / 60
-    );
-  };
-
   const totalHour = () => {
-    return Math.ceil(
-      task.tasks.reduce((acc, cur) => acc + cur.minutes, 0) / 60
+    const total = Math.ceil(
+      task.tasks.reduce((acc, cur) => acc + cur.seconds, 0) / 3600
     );
+    const suffix = total > 1 ? "hours" : "hour";
+    return `${total} ${suffix} to focus`;
   };
 
   return (
@@ -32,12 +28,14 @@ function App() {
             </Col>
             <Col>
               <Title level={4} style={{ fontWeight: 400 }}>
-                Time spent: {hourSpent()}/{totalHour()} hours
+                {totalHour()}
               </Title>
             </Col>
           </Row>
           <AddTask taskHook={task} />
-          <TaskList taskHook={task} />
+          {task.tasks.map((_task) => (
+            <TaskItem task={_task} />
+          ))}
         </Col>
       </Row>
     </>

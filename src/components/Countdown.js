@@ -3,38 +3,34 @@ import { useEffect, useState, useRef } from "react";
 
 const { Title } = Typography;
 
-function Countdown({ taskHook, task }) {
+function Countdown({ play, seconds }) {
   const [hour, setHour] = useState(0);
   const [minute, setMinute] = useState(0);
-  const [second, setSecond] = useState(59);
-  const timeout = useRef();
+  const [second, setSecond] = useState(0);
+  const spent = useRef(0);
 
   useEffect(() => {
-    const timeleft = task.minutes - task.minutesSpent;
-    setHour(Math.floor(timeleft / 60));
-    setMinute(String(timeleft % 60).padStart(2, "0"));
-  }, [task]);
+    function tiktok() {
+      if (spent.current > seconds) return;
 
-  useEffect(() => {
-    if (
-      (task.minutes <= task.minutesSpent && second <= 0) ||
-      false === task.play
-    ) {
-      clearTimeout(timeout.current);
-      return;
-    }
-    if (second <= 0) {
-      setSecond(59);
-      taskHook.oneMinuteSpent(task.id);
-    }
-    timeout.current = setTimeout(() => {
-      setSecond((sec) => --sec);
-    }, 1000);
+      const secs = seconds - spent.current;
+      const h = Math.floor(secs / 3600);
+      const m = Math.floor((secs % 3600) / 60);
+      const s = secs % 60;
 
-    return () => {
-      clearTimeout(timeout.current);
-    };
-  }, [second, task, taskHook]);
+      setHour((_) => h);
+      setMinute((_) => String(m).padStart(2, "0"));
+      setSecond((_) => String(s).padStart(2, "0"));
+
+      if (!play) return;
+      spent.current++;
+    }
+    tiktok();
+
+    let interval = setInterval(tiktok, 1000);
+
+    return () => clearInterval(interval);
+  }, [play, seconds]);
 
   return (
     <Space>
