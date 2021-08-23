@@ -1,13 +1,15 @@
 import { Typography, Space } from "antd";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useContext } from "react";
+import { store } from "../redux/store";
 
 const { Title } = Typography;
 
-function Countdown({ play, seconds }) {
+function Countdown({ id, play, seconds, secondsSpent }) {
+  const { updateSecondsSpent } = useContext(store);
   const [hour, setHour] = useState(0);
   const [minute, setMinute] = useState(0);
   const [second, setSecond] = useState(0);
-  const spent = useRef(0);
+  const spent = useRef(secondsSpent || 0);
 
   useEffect(() => {
     function tiktok() {
@@ -24,13 +26,14 @@ function Countdown({ play, seconds }) {
 
       if (!play) return;
       spent.current++;
+      updateSecondsSpent(id, spent.current);
     }
     tiktok();
 
     let interval = setInterval(tiktok, 1000);
 
     return () => clearInterval(interval);
-  }, [play, seconds]);
+  }, [play]);
 
   return (
     <Space>

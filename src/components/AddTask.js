@@ -1,11 +1,13 @@
 import { Button, Modal, Form, Input, Radio } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useForm } from "antd/lib/form/Form";
+import { store } from "../redux/store";
 
 const { Item } = Form;
 
-function AddTask({ taskHook }) {
+function AddTask() {
+  const { addTask } = useContext(store);
   const [show, setShow] = useState(false);
   const [form] = useForm();
 
@@ -18,7 +20,7 @@ function AddTask({ taskHook }) {
   ];
 
   const addingTask = (values) => {
-    taskHook.addTask(values.title, values.seconds);
+    addTask(values.title, values.seconds);
     setShow(false);
     form.resetFields();
   };

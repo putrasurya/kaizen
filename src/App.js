@@ -1,16 +1,17 @@
 import { Col, Row, Typography } from "antd";
-import useTask from "./hooks/useTask";
+import { store } from "./redux/store";
 import AddTask from "./components/AddTask";
 import TaskItem from "./components/TaskItem";
+import { useContext } from "react";
 
 const { Title } = Typography;
 
 function App() {
-  const task = useTask();
+  const { tasks } = useContext(store);
 
   const totalHour = () => {
     const total = Math.ceil(
-      task.tasks.reduce((acc, cur) => acc + cur.seconds, 0) / 3600
+      tasks.reduce((acc, cur) => acc + cur.seconds, 0) / 3600
     );
     const suffix = total > 1 ? "hours" : "hour";
     return `${total} ${suffix} to focus`;
@@ -32,9 +33,9 @@ function App() {
               </Title>
             </Col>
           </Row>
-          <AddTask taskHook={task} />
-          {task.tasks.map((_task) => (
-            <TaskItem task={_task} />
+          <AddTask />
+          {tasks.map((task, key) => (
+            <TaskItem key={key} task={task} />
           ))}
         </Col>
       </Row>
