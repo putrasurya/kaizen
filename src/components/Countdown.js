@@ -9,13 +9,22 @@ function Countdown({ id, play, seconds, secondsSpent }) {
   const [hour, setHour] = useState(0);
   const [minute, setMinute] = useState(0);
   const [second, setSecond] = useState(0);
-  const spent = useRef(secondsSpent || 0);
+  const spent = useRef((secondsSpent || 0) * 1000);
+  const timeStart = useRef(null);
 
   useEffect(() => {
-    function tiktok() {
-      if (spent.current > seconds) return;
+    if (timeStart.current === null && play) {
+      timeStart.current = new Date();
+    }
 
-      const secs = seconds - spent.current;
+    if (false === play) {
+      timeStart.current = null;
+    }
+
+    function tiktok() {
+      if (spent.current > seconds * 1000) return;
+
+      const secs = seconds - Math.round(spent.current / 1000);
       const h = Math.floor(secs / 3600);
       const m = Math.floor((secs % 3600) / 60);
       const s = secs % 60;
@@ -25,8 +34,13 @@ function Countdown({ id, play, seconds, secondsSpent }) {
       setSecond((_) => String(s).padStart(2, "0"));
 
       if (!play) return;
-      spent.current++;
-      updateSecondsSpent(id, spent.current);
+
+      const accumulation = new Date().getTime() - timeStart.current.getTime();
+      spent.current = secondsSpent + accumulation;
+
+      if (spent.current % 60 === 0) {
+        updateSecondsSpent(id, Math.round(spent.current / 1000));
+      }
     }
     tiktok();
 
