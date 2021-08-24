@@ -12,15 +12,24 @@ function AddTask() {
   const [form] = useForm();
 
   const timeOptions = [
+    { label: "0H", value: 0 },
     { label: "1H", value: 60 * 60 * 1 },
     { label: "2H", value: 60 * 60 * 2 },
     { label: "3H", value: 60 * 60 * 3 },
     { label: "4H", value: 60 * 60 * 4 },
     { label: "5H", value: 60 * 60 * 5 },
+    { label: "6H", value: 60 * 60 * 6 },
+  ];
+
+  const timeAdditionalOptions = [
+    { label: "0 mins", value: 0 },
+    { label: "15 mins", value: 60 * 15 },
+    { label: "30 mins", value: 60 * 30 },
+    { label: "45 mins", value: 60 * 45 },
   ];
 
   const addingTask = (values) => {
-    addTask(values.title, values.seconds);
+    addTask(values.title, values.seconds + values.secondsAdditional);
     setShow(false);
     form.resetFields();
   };
@@ -39,7 +48,7 @@ function AddTask() {
       </Button>
       <Modal
         visible={show}
-        width={312}
+        width={417}
         title="Add Timer Task"
         onCancel={() => {
           setShow(false);
@@ -51,7 +60,7 @@ function AddTask() {
           form={form}
           size="large"
           onFinish={addingTask}
-          initialValues={{ seconds: 60 * 60 }}
+          initialValues={{ seconds: 60 * 60, secondsAdditional: 0 }}
         >
           <Item name="title" required={true}>
             <Input placeholder="eg. Crafting Hydroponic Frame" />
@@ -59,6 +68,13 @@ function AddTask() {
           <Item name="seconds" required={true}>
             <Radio.Group
               options={timeOptions}
+              optionType="button"
+              buttonStyle="solid"
+            />
+          </Item>
+          <Item name="secondsAdditional" required={true}>
+            <Radio.Group
+              options={timeAdditionalOptions}
               optionType="button"
               buttonStyle="solid"
             />
