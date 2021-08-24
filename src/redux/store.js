@@ -27,6 +27,11 @@ function reducer(state, action) {
       break;
     }
 
+    case "delete": {
+      updatedState = state.filter((task) => task.id !== payload.id);
+      break;
+    }
+
     default: {
       updatedState = state;
     }
@@ -58,6 +63,13 @@ function StoreProvider({ children }) {
     });
   };
 
+  const deleteTask = (id) => {
+    dispatch({
+      type: "delete",
+      payload: { id },
+    });
+  };
+
   const updateSecondsSpent = (id, secondsSpent) => {
     dispatch({
       type: "update",
@@ -73,6 +85,7 @@ function StoreProvider({ children }) {
       value={{
         tasks: state,
         addTask,
+        deleteTask,
         updateSecondsSpent,
       }}
     >
