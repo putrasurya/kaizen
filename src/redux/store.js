@@ -5,30 +5,55 @@ function reducer(state, action) {
   let updatedState;
 
   switch (type) {
-    case "add": {
+    case "addTask": {
       const task = {
         id: new Date().getTime(),
         title: payload.title,
         seconds: payload.seconds,
         secondsSpent: payload.secondsSpent,
       };
-      updatedState = [task, ...state];
+      updatedState = { ...state, tasks: [task, ...state.tasks] };
       break;
     }
 
-    case "update": {
-      updatedState = state.map((task) => {
-        if (task.id !== payload.id) return task;
-        return {
-          ...task,
-          ...payload,
-        };
-      });
+    case "updateTask": {
+      updatedState = {
+        ...state,
+        tasks: state.tasks.map((task) => {
+          if (task.id !== payload.id) return task;
+          return {
+            ...task,
+            ...payload,
+          };
+        }),
+      };
       break;
     }
 
-    case "delete": {
-      updatedState = state.filter((task) => task.id !== payload.id);
+    case "deleteTask": {
+      updatedState = {
+        ...state,
+        tasks: state.tasks.filter((task) => task.id !== payload.id),
+      };
+      break;
+    }
+
+    case "addReminder": {
+      const reminder = {
+        id: new Date().getTime(),
+        content: payload.content,
+      };
+      updatedState = { ...state, reminders: [reminder, ...state.reminders] };
+      break;
+    }
+
+    case "deleteReminder": {
+      updatedState = {
+        ...state,
+        reminders: state.reminders.filter(
+          (reminder) => reminder.id !== payload.id
+        ),
+      };
       break;
     }
 
@@ -43,7 +68,8 @@ function reducer(state, action) {
 }
 
 const initialState = JSON.parse(
-  window.localStorage.getItem("__myTimerTaskApp") || "[]"
+  window.localStorage.getItem("__myTimerTaskApp") ||
+    JSON.stringify({ tasks: [], reminders: [] })
 );
 const store = createContext(initialState);
 const { Provider } = store;
@@ -53,7 +79,7 @@ function StoreProvider({ children }) {
 
   const addTask = (title, seconds, secondsSpent = 0, play = false) => {
     dispatch({
-      type: "add",
+      type: "addTask",
       payload: {
         title,
         seconds,
@@ -65,14 +91,14 @@ function StoreProvider({ children }) {
 
   const deleteTask = (id) => {
     dispatch({
-      type: "delete",
+      type: "deleteTask",
       payload: { id },
     });
   };
 
   const updateSecondsSpent = (id, secondsSpent) => {
     dispatch({
-      type: "update",
+      type: "updateTask",
       payload: {
         id,
         secondsSpent,
@@ -80,13 +106,32 @@ function StoreProvider({ children }) {
     });
   };
 
+  const addReminder = (content) => {
+    dispatch({
+      type: "addReminder",
+      payload: {
+        content,
+      },
+    });
+  };
+
+  const deleteReminder = (id) => {
+    dispatch({
+      type: "deleteReminder",
+      payload: { id },
+    });
+  };
+
   return (
     <Provider
       value={{
-        tasks: state,
+        tasks: state.tasks,
         addTask,
         deleteTask,
         updateSecondsSpent,
+        reminders: state.reminders,
+        addReminder,
+        deleteReminder,
       }}
     >
       {children}

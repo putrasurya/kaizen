@@ -1,8 +1,9 @@
-import { Col, Row, Typography } from "antd";
+import { Col, Row, Typography, Button } from "antd";
 import { store } from "./redux/store";
 import AddTask from "./components/AddTask";
 import TaskItem from "./components/TaskItem";
 import { useContext } from "react";
+import Reminder from "./components/Reminder";
 
 const { Title } = Typography;
 
@@ -18,9 +19,12 @@ function App() {
   };
 
   return (
-    <>
-      <Row className="margin-top-2">
-        <Col offset={8} span={8}>
+    <div className="padding-left-3 padding-right-3">
+      <Row className="padding-top-2" gutter={50}>
+        <Col span={8}>
+          <Reminder />
+        </Col>
+        <Col span={8}>
           <Row justify="space-between" align="middle">
             <Col>
               <Title level={2} style={{ fontWeight: 300 }}>
@@ -39,7 +43,7 @@ function App() {
           ))}
         </Col>
       </Row>
-    </>
+    </div>
   );
 }
 
