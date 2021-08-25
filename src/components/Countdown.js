@@ -19,12 +19,13 @@ function Countdown({ id, play, seconds, secondsSpent }) {
 
     if (false === play) {
       timeStart.current = null;
+      updateSecondsSpent(id, Math.floor(spent.current / 1000));
     }
 
     function tiktok() {
       if (spent.current > seconds * 1000) return;
 
-      const secs = seconds - Math.round(spent.current / 1000);
+      const secs = seconds - Math.floor(spent.current / 1000);
       const h = Math.floor(secs / 3600);
       const m = Math.floor((secs % 3600) / 60);
       const s = secs % 60;
@@ -36,10 +37,10 @@ function Countdown({ id, play, seconds, secondsSpent }) {
       if (!play) return;
 
       const accumulation = new Date().getTime() - timeStart.current.getTime();
-      spent.current = secondsSpent + accumulation;
+      spent.current = secondsSpent * 1000 + accumulation;
 
-      if (spent.current % 60 === 0) {
-        updateSecondsSpent(id, Math.round(spent.current / 1000));
+      if (Math.floor(spent.current / 1000) % 60 === 0) {
+        updateSecondsSpent(id, Math.floor(spent.current / 1000));
       }
     }
     tiktok();
