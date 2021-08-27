@@ -1,11 +1,11 @@
-import { Col, Row, Typography, Button } from "antd";
+import { Col, Row, Typography, Button, Space, Divider } from "antd";
 import { store } from "./redux/store";
 import AddTask from "./components/AddTask";
 import TaskItem from "./components/TaskItem";
 import { useContext } from "react";
 import Reminder from "./components/Reminder";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 function App() {
   const { tasks } = useContext(store);
@@ -16,6 +16,10 @@ function App() {
     );
     const suffix = total > 1 ? "hours" : "hour";
     return `${total} ${suffix} to focus`;
+  };
+
+  const hourLeftForToday = () => {
+    return 24 - new Date().getHours();
   };
 
   return (
@@ -32,9 +36,17 @@ function App() {
               </Title>
             </Col>
             <Col>
-              <Title level={4} style={{ fontWeight: 400 }}>
-                {totalHour()}
-              </Title>
+              <Space align="end">
+                <Title
+                  level={4}
+                  style={{ fontWeight: 400 }}
+                  className="no-margin-important"
+                >
+                  {totalHour()}
+                </Title>
+                <Divider type="vertical" />
+                <Text>{hourLeftForToday()}h / 24h today</Text>
+              </Space>
             </Col>
           </Row>
           <AddTask />
