@@ -11,9 +11,9 @@ function App() {
   const { tasks } = useContext(store);
 
   const totalHour = () => {
-    const total = Math.ceil(
+    const total = Number(
       tasks.reduce((acc, cur) => acc + cur.seconds, 0) / 3600
-    );
+    ).toFixed(2);
     const suffix = total > 1 ? "hours" : "hour";
     return `${total} ${suffix} to focus`;
   };
