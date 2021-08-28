@@ -5,7 +5,7 @@ import {
   PlayCircleFilled,
 } from "@ant-design/icons";
 import { Button, Card, Col, Row, Space, Modal } from "antd";
-import Countdown from "./Countdown";
+import TaskCountdown from "./TaskCountdown";
 import { store } from "../redux/store";
 
 function TaskItem({ task }) {
@@ -14,6 +14,10 @@ function TaskItem({ task }) {
 
   const buttonIcon = () => {
     return play ? <PauseCircleFilled /> : <PlayCircleFilled />;
+  };
+
+  const buttonType = () => {
+    return play ? "primary" : "default";
   };
 
   const handleDelete = (id) => {
@@ -29,19 +33,26 @@ function TaskItem({ task }) {
         <Col>{task.title}</Col>
         <Col>
           <Space align="center" size="middle">
-            <Countdown
+            <TaskCountdown
               id={task.id}
               play={play}
               seconds={task.seconds}
               secondsSpent={task.secondsSpent}
             />
-            <Button icon={buttonIcon()} onClick={() => setPlay(!play)} />
-            <Button
-              type="link"
-              color="danger"
-              icon={<DeleteOutlined />}
-              onClick={() => handleDelete(task.id)}
-            />
+            <Space size="small">
+              <Button
+                type={buttonType()}
+                icon={buttonIcon()}
+                shape="circle"
+                onClick={() => setPlay(!play)}
+              />
+              <Button
+                type="link"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => handleDelete(task.id)}
+              />
+            </Space>
           </Space>
         </Col>
       </Row>
