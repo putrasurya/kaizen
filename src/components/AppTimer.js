@@ -10,11 +10,10 @@ function AppTimer() {
   const { tasks } = useContext(store);
 
   const totalHour = () => {
-    const total = Number(
-      tasks.reduce((acc, cur) => acc + cur.seconds, 0) / 3600
-    ).toFixed(2);
-    const suffix = total > 1 ? "hours" : "hour";
-    return `${total} ${suffix} to focus`;
+    const secs = tasks.reduce((acc, cur) => acc + cur.seconds, 0);
+    const hours = Math.floor(secs / 3600);
+    const minutes = Math.floor((secs % 3600) / 60);
+    return `${hours}.${minutes} time to focus`;
   };
 
   const hourLeftForToday = () => {
