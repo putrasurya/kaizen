@@ -44,12 +44,12 @@ function AddTask() {
         icon={<PlusOutlined />}
         onClick={() => setShow(true)}
       >
-        Add Timer Task
+        Add Focus Time
       </Button>
       <Modal
         visible={show}
         width={417}
-        title="Add Timer Task"
+        title="Add Focus Time"
         onCancel={() => {
           setShow(false);
           form.resetFields();
