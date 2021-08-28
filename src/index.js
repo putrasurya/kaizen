@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import "antd/dist/antd.css";
-import "./utilities.css";
+import "antd/dist/antd.less";
+import "./utilities.less";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { StoreProvider } from "./redux/store";

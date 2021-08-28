@@ -7,7 +7,7 @@ import { store } from "../redux/store";
 const { Title } = Typography;
 const { Item } = Form;
 
-function Reminder() {
+function AppReminder() {
   const { reminders, addReminder, deleteReminder } = useContext(store);
   const [form] = useForm();
   const [show, setShow] = useState(false);
@@ -47,6 +47,7 @@ function Reminder() {
               <Button
                 size="small"
                 type="link"
+                danger
                 icon={<CloseOutlined />}
                 onClick={() => handleDelete(item.id)}
               />
@@ -70,4 +71,4 @@ function Reminder() {
   );
 }
 
-export default Reminder;
+export default AppReminder;
