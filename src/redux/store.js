@@ -57,6 +57,25 @@ function reducer(state, action) {
       break;
     }
 
+    case "addEmbed": {
+      updatedState = {
+        ...state,
+        embeds: [
+          { id: new Date().getTime(), link: payload.link },
+          ...(state.embeds || []),
+        ],
+      };
+      break;
+    }
+
+    case "deleteEmbed": {
+      updatedState = {
+        ...state,
+        embeds: (state.embeds || []).filter((embed) => embed.id !== payload.id),
+      };
+      break;
+    }
+
     default: {
       updatedState = state;
     }
@@ -69,7 +88,7 @@ function reducer(state, action) {
 
 const initialState = JSON.parse(
   window.localStorage.getItem("__myTimerTaskApp") ||
-    JSON.stringify({ tasks: [], reminders: [] })
+    JSON.stringify({ tasks: [], reminders: [], embeds: [] })
 );
 const store = createContext(initialState);
 const { Provider } = store;
@@ -122,6 +141,22 @@ function StoreProvider({ children }) {
     });
   };
 
+  const addEmbed = (link) => {
+    dispatch({
+      type: "addEmbed",
+      payload: {
+        link,
+      },
+    });
+  };
+
+  const deleteEmbed = (id) => {
+    dispatch({
+      type: "deleteEmbed",
+      payload: { id },
+    });
+  };
+
   return (
     <Provider
       value={{
@@ -132,6 +167,9 @@ function StoreProvider({ children }) {
         reminders: state.reminders,
         addReminder,
         deleteReminder,
+        embeds: state.embeds,
+        addEmbed,
+        deleteEmbed,
       }}
     >
       {children}

@@ -1,4 +1,5 @@
 import { Col, Row } from "antd";
+import AppEmbed from "./components/AppEmbed";
 import AppReminder from "./components/AppReminder";
 import AppTimer from "./components/AppTimer";
 
@@ -11,6 +12,9 @@ function App() {
         </Col>
         <Col span={8}>
           <AppTimer />
+        </Col>
+        <Col span={8}>
+          <AppEmbed />
         </Col>
       </Row>
     </div>
