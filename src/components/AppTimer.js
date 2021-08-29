@@ -10,7 +10,9 @@ function AppTimer() {
   const { tasks } = useContext(store);
 
   const totalHour = () => {
-    const secs = tasks.reduce((acc, cur) => acc + cur.seconds, 0);
+    const secsInitial = tasks.reduce((acc, cur) => acc + cur.seconds, 0);
+    const secsSpent = tasks.reduce((acc, cur) => acc + cur.secondsSpent, 0);
+    const secs = secsInitial - secsSpent;
     const hours = Math.floor(secs / 3600);
     const minutes = Math.floor((secs % 3600) / 60);
     return `${hours}.${minutes} time to focus`;
