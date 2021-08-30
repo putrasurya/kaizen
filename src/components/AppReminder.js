@@ -26,18 +26,16 @@ function AppReminder() {
     <>
       <List
         header={
-          <Title
-            level={3}
-            style={{ fontWeight: 300 }}
-            className="no-margin-important"
-          >
-            Reminder
-          </Title>
-        }
-        footer={
-          <Button icon={<PlusOutlined />} onClick={() => setShow(true)}>
-            Add Reminder
-          </Button>
+          <Row justify="space-between">
+            <Title
+              level={3}
+              style={{ fontWeight: 300 }}
+              className="no-margin-important"
+            >
+              Reminder
+            </Title>
+            <Button icon={<PlusOutlined />} onClick={() => setShow(true)} />
+          </Row>
         }
         dataSource={reminders}
         renderItem={(item) => (

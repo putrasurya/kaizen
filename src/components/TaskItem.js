@@ -38,6 +38,7 @@ function TaskItem({ task }) {
               play={play}
               seconds={task.seconds}
               secondsSpent={task.secondsSpent}
+              setPlay={setPlay}
             />
             <Space size="small">
               <Button
