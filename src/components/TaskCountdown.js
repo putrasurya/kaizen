@@ -5,11 +5,11 @@ import { store } from "../redux/store";
 
 const { Title } = Typography;
 
-function Countdown({ id, play, seconds, secondsSpent }) {
+function Countdown({ id, play, seconds, secondsSpent, setPlay }) {
   const { updateSecondsSpent } = useContext(store);
   const [hour, setHour] = useState(0);
-  const [minute, setMinute] = useState(0);
-  const [second, setSecond] = useState(0);
+  const [minute, setMinute] = useState("00");
+  const [second, setSecond] = useState("00");
   const spent = useRef((secondsSpent || 0) * 1000);
   const timeStart = useRef(null);
 
@@ -24,7 +24,16 @@ function Countdown({ id, play, seconds, secondsSpent }) {
     }
 
     function tiktok() {
-      if (spent.current > seconds * 1000) return;
+      if (spent.current >= seconds * 1000) {
+        if (spent.current > seconds * 1000) {
+          setHour((_) => 0);
+          setMinute((_) => String("00"));
+          setSecond((_) => String("00"));
+          updateSecondsSpent(id, seconds);
+          setPlay(false);
+        }
+        return;
+      }
 
       const secs = seconds - Math.floor(spent.current / 1000);
       const h = Math.floor(secs / 3600);
