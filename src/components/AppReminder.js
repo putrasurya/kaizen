@@ -40,15 +40,17 @@ function AppReminder() {
         dataSource={reminders}
         renderItem={(item) => (
           <List.Item>
-            <Row justify="space-between" style={{ width: "100%" }}>
-              <Col>{item.content}</Col>
-              <Button
-                size="small"
-                type="link"
-                danger
-                icon={<CloseOutlined />}
-                onClick={() => handleDelete(item.id)}
-              />
+            <Row wrap={false} style={{ width: "100%" }}>
+              <Col flex="auto">{item.content}</Col>
+              <Col flex="none">
+                <Button
+                  size="small"
+                  type="link"
+                  danger
+                  icon={<CloseOutlined />}
+                  onClick={() => handleDelete(item.id)}
+                />
+              </Col>
             </Row>
           </List.Item>
         )}
