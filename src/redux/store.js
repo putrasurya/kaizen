@@ -5,24 +5,24 @@ function reducer(state, action) {
   let updatedState;
 
   switch (type) {
-    case "addTask": {
-      const task = {
+    case "addTimer": {
+      const timer = {
         id: new Date().getTime(),
         title: payload.title,
         seconds: payload.seconds,
         secondsSpent: payload.secondsSpent,
       };
-      updatedState = { ...state, tasks: [task, ...state.tasks] };
+      updatedState = { ...state, timers: [timer, ...state.timers] };
       break;
     }
 
-    case "updateTask": {
+    case "updateTimer": {
       updatedState = {
         ...state,
-        tasks: state.tasks.map((task) => {
-          if (task.id !== payload.id) return task;
+        timers: state.timers.map((timer) => {
+          if (timer.id !== payload.id) return timer;
           return {
-            ...task,
+            ...timer,
             ...payload,
           };
         }),
@@ -30,28 +30,28 @@ function reducer(state, action) {
       break;
     }
 
-    case "deleteTask": {
+    case "deleteTimer": {
       updatedState = {
         ...state,
-        tasks: state.tasks.filter((task) => task.id !== payload.id),
+        timers: state.timers.filter((timer) => timer.id !== payload.id),
       };
       break;
     }
 
-    case "addReminder": {
-      const reminder = {
+    case "addNote": {
+      const note = {
         id: new Date().getTime(),
         content: payload.content,
       };
-      updatedState = { ...state, reminders: [reminder, ...state.reminders] };
+      updatedState = { ...state, notes: [note, ...state.notes] };
       break;
     }
 
-    case "deleteReminder": {
+    case "deleteNote": {
       updatedState = {
         ...state,
-        reminders: state.reminders.filter(
-          (reminder) => reminder.id !== payload.id
+        notes: state.notes.filter(
+          (note) => note.id !== payload.id
         ),
       };
       break;
@@ -81,14 +81,14 @@ function reducer(state, action) {
     }
   }
 
-  window.localStorage.setItem("__myTimerTaskApp", JSON.stringify(updatedState));
+  window.localStorage.setItem(process.env.STORAGEKEY, JSON.stringify(updatedState));
 
   return updatedState;
 }
 
 const initialState = JSON.parse(
-  window.localStorage.getItem("__myTimerTaskApp") ||
-    JSON.stringify({ tasks: [], reminders: [], embeds: [] })
+  window.localStorage.getItem(process.env.STORAGEKEY) ||
+    JSON.stringify({ timers: [], notes: [], embeds: [] })
 );
 const store = createContext(initialState);
 const { Provider } = store;
@@ -96,9 +96,9 @@ const { Provider } = store;
 function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  const addTask = (title, seconds, secondsSpent = 0, play = false) => {
+  const addTimer = (title, seconds, secondsSpent = 0, play = false) => {
     dispatch({
-      type: "addTask",
+      type: "addTimer",
       payload: {
         title,
         seconds,
@@ -108,16 +108,16 @@ function StoreProvider({ children }) {
     });
   };
 
-  const deleteTask = (id) => {
+  const deleteTimer = (id) => {
     dispatch({
-      type: "deleteTask",
+      type: "deleteTimer",
       payload: { id },
     });
   };
 
   const updateSecondsSpent = (id, secondsSpent) => {
     dispatch({
-      type: "updateTask",
+      type: "updateTimer",
       payload: {
         id,
         secondsSpent,
@@ -125,18 +125,18 @@ function StoreProvider({ children }) {
     });
   };
 
-  const addReminder = (content) => {
+  const addNote = (content) => {
     dispatch({
-      type: "addReminder",
+      type: "addNote",
       payload: {
         content,
       },
     });
   };
 
-  const deleteReminder = (id) => {
+  const deleteNote = (id) => {
     dispatch({
-      type: "deleteReminder",
+      type: "deleteNote",
       payload: { id },
     });
   };
@@ -160,13 +160,13 @@ function StoreProvider({ children }) {
   return (
     <Provider
       value={{
-        tasks: state.tasks,
-        addTask,
-        deleteTask,
+        timers: state.timers,
+        addTimer,
+        deleteTimer,
         updateSecondsSpent,
-        reminders: state.reminders,
-        addReminder,
-        deleteReminder,
+        notes: state.notes,
+        addNote,
+        deleteNote,
         embeds: state.embeds,
         addEmbed,
         deleteEmbed,

@@ -6,8 +6,8 @@ import { store } from "../redux/store";
 
 const { Item } = Form;
 
-function AddTask() {
-  const { addTask } = useContext(store);
+function AddTimer() {
+  const { addTimer } = useContext(store);
   const [show, setShow] = useState(false);
   const [form] = useForm();
 
@@ -28,8 +28,8 @@ function AddTask() {
     { label: "45 mins", value: 60 * 45 },
   ];
 
-  const addingTask = (values) => {
-    addTask(values.title, values.seconds + values.secondsAdditional);
+  const addingTimer = (values) => {
+    addTimer(values.title, values.seconds + values.secondsAdditional);
     setShow(false);
     form.resetFields();
   };
@@ -44,12 +44,12 @@ function AddTask() {
         icon={<PlusOutlined />}
         onClick={() => setShow(true)}
       >
-        Add Focus Time
+        Add Timer
       </Button>
       <Modal
         visible={show}
         width={417}
-        title="Add Focus Time"
+        title="Add Timer"
         onCancel={() => {
           setShow(false);
           form.resetFields();
@@ -59,11 +59,11 @@ function AddTask() {
         <Form
           form={form}
           size="large"
-          onFinish={addingTask}
+          onFinish={addingTimer}
           initialValues={{ seconds: 60 * 60, secondsAdditional: 0 }}
         >
           <Item name="title" required={true}>
-            <Input placeholder="eg. Crafting Hydroponic Frame" />
+            <Input placeholder="eg. Focus on Works" />
           </Item>
           <Item name="seconds" required={true}>
             <Radio.Group
@@ -85,4 +85,4 @@ function AddTask() {
   );
 }
 
-export default AddTask;
+export default AddTimer;

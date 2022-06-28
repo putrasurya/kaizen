@@ -1,17 +1,17 @@
 import { Col, Divider, Row, Space, Tooltip, Typography } from "antd";
 import { useContext } from "react";
-import TaskAdd from "./TaskAdd";
-import TaskItem from "./TaskItem";
+import TimerAdd from "./TimerAdd";
+import TimerItem from "./TimerItem";
 import { store } from "../redux/store";
 
 const { Title, Text } = Typography;
 
 function AppTimer() {
-  const { tasks } = useContext(store);
+  const { timers } = useContext(store);
 
   const totalHour = () => {
-    const secsInitial = tasks.reduce((acc, cur) => acc + cur.seconds, 0);
-    const secsSpent = tasks.reduce((acc, cur) => acc + cur.secondsSpent, 0);
+    const secsInitial = timers.reduce((acc, cur) => acc + cur.seconds, 0);
+    const secsSpent = timers.reduce((acc, cur) => acc + cur.secondsSpent, 0);
     const secs = secsInitial - secsSpent;
     const hours = Math.floor(secs / 3600);
     const minutes = Math.floor((secs % 3600) / 60);
@@ -46,9 +46,9 @@ function AppTimer() {
           </Space>
         </Col>
       </Row>
-      <TaskAdd />
-      {tasks.map((task) => (
-        <TaskItem key={task.id} task={task} />
+      <TimerAdd />
+      {timers.map((timer) => (
+        <TimerItem key={timer.id} timer={timer} />
       ))}
     </>
   );

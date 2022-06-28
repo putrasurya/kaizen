@@ -6,11 +6,11 @@ import {
   UndoOutlined,
 } from "@ant-design/icons";
 import { Button, Card, Col, Row, Space, Modal } from "antd";
-import TaskCountdown from "./TaskCountdown";
+import TimerCountdown from "./TimerCountdown";
 import { store } from "../redux/store";
 
-function TaskItem({ task }) {
-  const { deleteTask, updateSecondsSpent } = useContext(store);
+function TimerItem({ timer }) {
+  const { deleteTimer, updateSecondsSpent } = useContext(store);
   const [play, setPlay] = useState(false);
 
   const buttonIcon = () => {
@@ -24,29 +24,29 @@ function TaskItem({ task }) {
   const handleDelete = (id) => {
     Modal.confirm({
       title: "delete timer?",
-      onOk: () => deleteTask(id),
+      onOk: () => deleteTimer(id),
     });
   };
 
-  const handleReset = (task) => {
+  const handleReset = (timer) => {
     Modal.confirm({
       title: "reset timer?",
-      onOk: () => updateSecondsSpent(task.id, 0),
+      onOk: () => updateSecondsSpent(timer.id, 0),
     });
   }
 
   return (
     <Card className="margin-top-1" size="small">
       <Row justify="space-between" align="middle">
-        <Col>{task.title}</Col>
+        <Col>{timer.title}</Col>
         <Col>
           <Space align="center" size="middle">
-            <TaskCountdown
-              key={task.id}
-              id={task.id}
+            <TimerCountdown
+              key={timer.id}
+              id={timer.id}
               play={play}
-              seconds={task.seconds}
-              secondsSpent={task.secondsSpent}
+              seconds={timer.seconds}
+              secondsSpent={timer.secondsSpent}
               setPlay={setPlay}
             />
             <Space size="small">
@@ -61,14 +61,14 @@ function TaskItem({ task }) {
                   type="link"
                   disabled={play}
                   icon={<UndoOutlined />}
-                  onClick={() => handleReset(task)}
+                  onClick={() => handleReset(timer)}
                 />
                 <Button
                   type="link"
                   danger
                   disabled={play}
                   icon={<DeleteOutlined />}
-                  onClick={() => handleDelete(task.id)}
+                  onClick={() => handleDelete(timer.id)}
                 />
               </div>
             </Space>
@@ -79,4 +79,4 @@ function TaskItem({ task }) {
   );
 }
 
-export default TaskItem;
+export default TimerItem;

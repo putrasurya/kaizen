@@ -7,19 +7,19 @@ import { store } from "../redux/store";
 const { Title } = Typography;
 const { Item } = Form;
 
-function AppReminder() {
-  const { reminders, addReminder, deleteReminder } = useContext(store);
+function AppNote() {
+  const { notes, addNote, deleteNote } = useContext(store);
   const [form] = useForm();
   const [show, setShow] = useState(false);
 
   const handleAdd = (values) => {
-    addReminder(values.content);
+    addNote(values.content);
     form.resetFields();
     setShow(false);
   };
 
   const handleDelete = (id) => {
-    deleteReminder(id);
+    deleteNote(id);
   };
 
   return (
@@ -32,12 +32,12 @@ function AppReminder() {
               style={{ fontWeight: 300 }}
               className="no-margin-important"
             >
-              Reminder
+              Take Note
             </Title>
             <Button icon={<PlusOutlined />} onClick={() => setShow(true)} />
           </Row>
         }
-        dataSource={reminders}
+        dataSource={notes}
         renderItem={(item) => (
           <List.Item>
             <Row wrap={false} style={{ width: "100%" }}>
@@ -71,4 +71,4 @@ function AppReminder() {
   );
 }
 
-export default AppReminder;
+export default AppNote;
