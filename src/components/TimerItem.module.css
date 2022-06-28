@@ -1,0 +1,18 @@
+.timer_pause {
+  margin-top: 14px;
+}
+
+.timer_play {
+  margin-top: 14px;
+  border-color: #177ddc;
+}
+
+.countdown_pause {
+  color: #ffffff !important;
+  margin: 0 !important;
+}
+
+.countdown_play {
+  color: #2aabff !important;
+  margin: 0 !important;
+}

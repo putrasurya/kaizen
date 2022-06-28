@@ -5,7 +5,7 @@ import { store } from "../redux/store";
 
 const { Title } = Typography;
 
-function Countdown({ id, play, seconds, secondsSpent, setPlay }) {
+function Countdown({ id, play, seconds, secondsSpent, setPlay, className }) {
   const { updateSecondsSpent } = useContext(store);
   const [hour, setHour] = useState(0);
   const [minute, setMinute] = useState("00");
@@ -67,7 +67,7 @@ function Countdown({ id, play, seconds, secondsSpent, setPlay }) {
 
   return (
     <Space>
-      <Title level={3} className="no-margin-important">
+      <Title level={3} className={className}>
         {hour}.{minute}
         <small style={{ fontWeight: 300, fontSize: "0.7em" }}>.{second}</small>
       </Title>

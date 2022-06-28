@@ -81,13 +81,13 @@ function reducer(state, action) {
     }
   }
 
-  window.localStorage.setItem(process.env.STORAGEKEY, JSON.stringify(updatedState));
+  window.localStorage.setItem(process.env.REACT_APP_STORAGEKEY, JSON.stringify(updatedState));
 
   return updatedState;
 }
 
 const initialState = JSON.parse(
-  window.localStorage.getItem(process.env.STORAGEKEY) ||
+  window.localStorage.getItem(process.env.REACT_APP_STORAGEKEY) ||
     JSON.stringify({ timers: [], notes: [], embeds: [] })
 );
 const store = createContext(initialState);

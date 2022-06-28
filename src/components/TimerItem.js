@@ -8,6 +8,7 @@ import {
 import { Button, Card, Col, Row, Space, Modal } from "antd";
 import TimerCountdown from "./TimerCountdown";
 import { store } from "../redux/store";
+import styles from "./TimerItem.module.css";
 
 function TimerItem({ timer }) {
   const { deleteTimer, updateSecondsSpent } = useContext(store);
@@ -36,7 +37,7 @@ function TimerItem({ timer }) {
   }
 
   return (
-    <Card className="margin-top-1" size="small">
+    <Card className={play?styles.timer_play:styles.timer_pause } size="small">
       <Row justify="space-between" align="middle">
         <Col>{timer.title}</Col>
         <Col>
@@ -48,6 +49,7 @@ function TimerItem({ timer }) {
               seconds={timer.seconds}
               secondsSpent={timer.secondsSpent}
               setPlay={setPlay}
+              className={play?styles.countdown_play:styles.countdown_pause}
             />
             <Space size="small">
               <Button
