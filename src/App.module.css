@@ -3,4 +3,14 @@
   margin: 0 auto;
   padding-left: 25px;
   padding-right: 25px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.appwrapper {
+  padding-top: 28px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: row;
 }

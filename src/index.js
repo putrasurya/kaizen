@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import "antd/dist/antd.less";
 import "./utilities.less";
+import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { StoreProvider } from "./redux/store";
