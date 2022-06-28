@@ -3,13 +3,14 @@ import {
   DeleteOutlined,
   PauseCircleFilled,
   PlayCircleFilled,
+  UndoOutlined,
 } from "@ant-design/icons";
 import { Button, Card, Col, Row, Space, Modal } from "antd";
 import TaskCountdown from "./TaskCountdown";
 import { store } from "../redux/store";
 
 function TaskItem({ task }) {
-  const { deleteTask } = useContext(store);
+  const { deleteTask, updateSecondsSpent } = useContext(store);
   const [play, setPlay] = useState(false);
 
   const buttonIcon = () => {
@@ -22,10 +23,17 @@ function TaskItem({ task }) {
 
   const handleDelete = (id) => {
     Modal.confirm({
-      title: "delete task?",
+      title: "delete timer?",
       onOk: () => deleteTask(id),
     });
   };
+
+  const handleReset = (task) => {
+    Modal.confirm({
+      title: "reset timer?",
+      onOk: () => updateSecondsSpent(task.id, 0),
+    });
+  }
 
   return (
     <Card className="margin-top-1" size="small">
@@ -34,6 +42,7 @@ function TaskItem({ task }) {
         <Col>
           <Space align="center" size="middle">
             <TaskCountdown
+              key={task.id}
               id={task.id}
               play={play}
               seconds={task.seconds}
@@ -47,12 +56,21 @@ function TaskItem({ task }) {
                 shape="circle"
                 onClick={() => setPlay(!play)}
               />
-              <Button
-                type="link"
-                danger
-                icon={<DeleteOutlined />}
-                onClick={() => handleDelete(task.id)}
-              />
+              <div>
+                <Button
+                  type="link"
+                  disabled={play}
+                  icon={<UndoOutlined />}
+                  onClick={() => handleReset(task)}
+                />
+                <Button
+                  type="link"
+                  danger
+                  disabled={play}
+                  icon={<DeleteOutlined />}
+                  onClick={() => handleDelete(task.id)}
+                />
+              </div>
             </Space>
           </Space>
         </Col>

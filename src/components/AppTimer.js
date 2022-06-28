@@ -1,4 +1,4 @@
-import { Col, Divider, Row, Space, Typography } from "antd";
+import { Col, Divider, Row, Space, Tooltip, Typography } from "antd";
 import { useContext } from "react";
 import TaskAdd from "./TaskAdd";
 import TaskItem from "./TaskItem";
@@ -15,7 +15,7 @@ function AppTimer() {
     const secs = secsInitial - secsSpent;
     const hours = Math.floor(secs / 3600);
     const minutes = Math.floor((secs % 3600) / 60);
-    return `${hours}.${minutes} time to focus`;
+    return `${hours}.${minutes} Times left`;
   };
 
   const hourLeftForToday = () => {
@@ -27,7 +27,7 @@ function AppTimer() {
       <Row justify="space-between" align="middle">
         <Col>
           <Title level={2} style={{ fontWeight: 300 }}>
-            My Timer
+            MultiTimer
           </Title>
         </Col>
         <Col>
@@ -40,7 +40,9 @@ function AppTimer() {
               {totalHour()}
             </Title>
             <Divider type="vertical" />
-            <Text>{hourLeftForToday()}h / 24h today</Text>
+            <Tooltip title="Represent times left from 24 hours of today">
+              <Text>{hourLeftForToday()}h/24h</Text>
+            </Tooltip>
           </Space>
         </Col>
       </Row>
