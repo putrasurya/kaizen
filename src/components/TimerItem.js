@@ -5,7 +5,7 @@ import {
   PlayCircleFilled,
   UndoOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Col, Row, Space, Modal } from "antd";
+import { Button, Card, Col, Row, Space, Modal, Typography } from "antd";
 import TimerCountdown from "./TimerCountdown";
 import { store } from "../redux/store";
 import styles from "./TimerItem.module.css";
@@ -38,9 +38,11 @@ function TimerItem({ timer }) {
 
   return (
     <Card className={play?styles.timer_play:styles.timer_pause } size="small">
-      <Row justify="space-between" align="middle">
-        <Col>{timer.title}</Col>
-        <Col>
+      <Row justify="space-between" align="middle" wrap={false}>
+        <Col flex="auto">
+          <Typography.Text ellipsis style={{paddingRight: 15}}>{timer.title}</Typography.Text>
+        </Col>
+        <Col flex="none">
           <Space align="center" size="middle">
             <TimerCountdown
               key={timer.id}
