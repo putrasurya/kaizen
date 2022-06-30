@@ -3,6 +3,7 @@ import { useContext } from "react";
 import TimerAdd from "./TimerAdd";
 import TimerItem from "./TimerItem";
 import { store } from "../redux/store";
+import styles from "./AppTimer.module.css";
 
 const { Title, Text } = Typography;
 
@@ -39,8 +40,8 @@ function AppTimer() {
             >
               {totalHour()}
             </Title>
-            <Divider type="vertical" />
-            <Tooltip title="Represent times left from 24 hours of today">
+            <Divider type="vertical" className={styles.hide_on_mobile} />
+            <Tooltip title="Represent times left from 24 hours of today" className={styles.hide_on_mobile}>
               <Text>{hourLeftForToday()}h/24h</Text>
             </Tooltip>
           </Space>
