@@ -58,6 +58,7 @@ function TimerItem({ timer }) {
                 type={buttonType()}
                 icon={buttonIcon()}
                 shape="circle"
+                disabled={timer.seconds === timer.secondsSpent}
                 onClick={() => setPlay(!play)}
               />
               <div>

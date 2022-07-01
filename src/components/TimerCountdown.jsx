@@ -5,6 +5,18 @@ import { store } from "../redux/store";
 
 const { Title } = Typography;
 
+function Buzz() {
+  const audio = document.createElement('audio');
+  audio.src = `${process.env.REACT_APP_BUZZ_WAV}`;
+  audio.autoplay = true;
+  audio.hidden = true;
+  audio.volume = 1;
+  audio.onended = function () {
+    audio.remove();
+  }
+  document.getElementById("root").append(audio);
+}
+
 function Countdown({ id, play, seconds, secondsSpent, setPlay, className }) {
   const { updateSecondsSpent } = useContext(store);
   const [hour, setHour] = useState(0);
@@ -38,6 +50,9 @@ function Countdown({ id, play, seconds, secondsSpent, setPlay, className }) {
         setMinute((_) => String("00"));
         setSecond((_) => String("00"));
         updateSecondsSpent(id, seconds);
+        if (play === true) {
+          Buzz();
+        }
         setPlay(false);
       }
       return;
