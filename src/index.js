@@ -1,5 +1,5 @@
 import React from "react";
-import ReactDOM from "react-dom";
+import ReactDOM, { hydrate, render } from "react-dom";
 import "antd/dist/antd.less";
 import "./utilities.less";
 import "./index.css";
@@ -7,14 +7,26 @@ import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { StoreProvider } from "./redux/store";
 
-ReactDOM.render(
-  <React.StrictMode>
-    <StoreProvider>
-      <App />
-    </StoreProvider>
-  </React.StrictMode>,
-  document.getElementById("root")
-);
+const rootElement = document.getElementById("root");
+if (rootElement.hasChildNodes()) {
+  hydrate(
+    <React.StrictMode>
+      <StoreProvider>
+        <App />
+      </StoreProvider>
+    </React.StrictMode>,
+    rootElement
+  );
+} else {
+  render(
+    <React.StrictMode>
+      <StoreProvider>
+        <App />
+      </StoreProvider>
+    </React.StrictMode>,
+    rootElement
+  );
+}
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
