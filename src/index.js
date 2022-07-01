@@ -1,5 +1,5 @@
 import React from "react";
-import ReactDOM, { hydrate, render } from "react-dom";
+import { hydrate, render } from "react-dom";
 import "antd/dist/antd.less";
 import "./utilities.less";
 import "./index.css";
