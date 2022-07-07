@@ -1,0 +1,19 @@
+.add_timer_button {
+  margin-bottom: 7px;
+}
+
+.radio_group {
+  overflow: auto;
+}
+
+.radio_items {
+  white-space: nowrap;
+}
+
+.small_note {
+  font-weight: normal;
+}
+
+.minutes_note {
+  margin-left: 15px;
+}
