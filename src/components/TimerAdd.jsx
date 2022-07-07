@@ -3,6 +3,7 @@ import { PlusOutlined } from "@ant-design/icons";
 import { useContext, useState } from "react";
 import { useForm } from "antd/lib/form/Form";
 import { store } from "../redux/store";
+import styles from './TimerAdd.module.css';
 
 const { Item } = Form;
 
@@ -40,7 +41,7 @@ function AddTimer() {
         size="large"
         block={true}
         type="dashed"
-        className="margin-bottom-1"
+        className={styles.add_timer_button}
         icon={<PlusOutlined />}
         onClick={() => setShow(true)}
       >
