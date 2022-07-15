@@ -17,7 +17,7 @@ function Buzz() {
   document.getElementById("root").append(audio);
 }
 
-function Countdown({ id, play, seconds, secondsSpent, setPlay, className }) {
+export default function Countdown({ id, play, seconds, secondsSpent, setPlay, className }) {
   const { updateSecondsSpent } = useContext(store);
   const [hour, setHour] = useState(0);
   const [minute, setMinute] = useState("00");
@@ -59,21 +59,19 @@ function Countdown({ id, play, seconds, secondsSpent, setPlay, className }) {
     }
 
     const secs = seconds - Math.floor(spent.current / 1000);
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
+    const [hour, minute, second] = extractToHourMinuteAndSecondWithPadZero(secs);
 
-    setHour((_) => h);
-    setMinute((_) => String(m).padStart(2, "0"));
-    setSecond((_) => String(s).padStart(2, "0"));
+    setHour((_) => hour);
+    setMinute((_) => minute);
+    setSecond((_) => second);
 
     if (!play || null === timeStart.current) return;
 
-    const accumulation = new Date().getTime() - timeStart.current.getTime();
-    spent.current = secondsSpent * 1000 + accumulation;
+    const realtimeGap = new Date().getTime() - timeStart.current.getTime();
+    spent.current = secondsSpent * 1000 + realtimeGap;
 
-    if (Math.floor(spent.current / 1000) % 60 === 0) {
-      updateSecondsSpent(id, Math.floor(spent.current / 1000));
+    if (millisToSeconds(spent.current) % 60 === 0) {
+      updateSecondsSpent(id, millisToSeconds(spent.current));
     }
 
     setTimeout(() => tiktok(), 1000);
@@ -89,4 +87,22 @@ function Countdown({ id, play, seconds, secondsSpent, setPlay, className }) {
   );
 }
 
-export default Countdown;
+function extractToHourMinuteAndSecond(secs) {
+    const hour = Math.floor(secs / 3600);
+    const minute = Math.floor((secs % 3600) / 60);
+    const second = secs % 60;
+    return [hour, minute, second];
+}
+
+function extractToHourMinuteAndSecondWithPadZero(secs) {
+  const [hour, minute, second] = extractToHourMinuteAndSecond(secs);
+  return [hour, String(minute).padStart(2, "0"), String(second).padStart(2, "0")];
+}
+
+function millisToSeconds(millis) {
+  return Math.floor(millis/1000);
+}
+
+function secondsToMillis(seconds) {
+  return seconds*1000;
+}
