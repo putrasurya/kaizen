@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { Typography, Space } from "antd";
+import { Typography, Space, Tooltip } from "antd";
 import { useEffect, useState, useRef, useContext } from "react";
 import { store } from "../redux/store";
 
@@ -22,28 +22,44 @@ export default function Countdown({ id, play, seconds, secondsSpent, setPlay, cl
   const [hour, setHour] = useState(0);
   const [minute, setMinute] = useState("00");
   const [second, setSecond] = useState("00");
+  const [tooltipDisplay, setTooltipDisplay] = useState("0.00/0.00");
   const spent = useRef(secondsToMillis(secondsSpent || 0));
   const timeStart = useRef(null);
 
   useEffect(() => {
+    playPropChanged();
+    tiktok();
+  }, [play]);
+
+  useEffect(() => {
+    secondsSpentPropChanged();
+  }, [secondsSpent])
+
+  function playPropChanged() {
     if (false === play) {
       timeStart.current = null;
       updateSecondsSpent(id, millisToSeconds(spent.current));
     } else {
       timeStart.current = new Date();
     }
-    tiktok();
-  }, [play]);
+  }
 
-  useEffect(() => {
+  function secondsSpentPropChanged() {
     if (secondsSpent === 0 && false === play) {
       timeStart.current = new Date();
       spent.current = 0;
       tiktok();
     }
-  }, [secondsSpent])
+  }
+
+  function updateTooltipDisplay() {
+    const [originHour, originMinute] = extractToHourMinuteAndSecondWithPadZero(seconds);
+    setTooltipDisplay(`${hour}.${minute} / ${originHour}.${originMinute}`)
+  }
 
   function tiktok() {
+    updateTooltipDisplay();
+
     if (spent.current >= secondsToMillis(seconds)) {
       if (spent.current > secondsToMillis(seconds)) {
         setHour((_) => 0);
@@ -81,10 +97,12 @@ export default function Countdown({ id, play, seconds, secondsSpent, setPlay, cl
 
   return (
     <Space>
-      <Title level={3} className={className}>
-        {hour}.{minute}
-        <small style={{ fontWeight: 300, fontSize: "0.7em" }}>.{second}</small>
-      </Title>
+      <Tooltip title={tooltipDisplay}>
+        <Title level={3} className={className}>
+          {hour}.{minute}
+          <small style={{ fontWeight: 300, fontSize: "0.7em" }}>.{second}</small>
+        </Title>
+      </Tooltip>
     </Space>
   );
 }
