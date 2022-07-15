@@ -22,13 +22,13 @@ export default function Countdown({ id, play, seconds, secondsSpent, setPlay, cl
   const [hour, setHour] = useState(0);
   const [minute, setMinute] = useState("00");
   const [second, setSecond] = useState("00");
-  const spent = useRef((secondsSpent || 0) * 1000);
+  const spent = useRef(secondsToMillis(secondsSpent || 0));
   const timeStart = useRef(null);
 
   useEffect(() => {
     if (false === play) {
       timeStart.current = null;
-      updateSecondsSpent(id, Math.floor(spent.current / 1000));
+      updateSecondsSpent(id, millisToSeconds(spent.current));
     } else {
       timeStart.current = new Date();
     }
@@ -44,11 +44,11 @@ export default function Countdown({ id, play, seconds, secondsSpent, setPlay, cl
   }, [secondsSpent])
 
   function tiktok() {
-    if (spent.current >= seconds * 1000) {
-      if (spent.current > seconds * 1000) {
+    if (spent.current >= secondsToMillis(seconds)) {
+      if (spent.current > secondsToMillis(seconds)) {
         setHour((_) => 0);
-        setMinute((_) => String("00"));
-        setSecond((_) => String("00"));
+        setMinute((_) => "00");
+        setSecond((_) => "00");
         updateSecondsSpent(id, seconds);
         if (play === true) {
           Buzz();
@@ -58,18 +58,20 @@ export default function Countdown({ id, play, seconds, secondsSpent, setPlay, cl
       return;
     }
 
-    const secs = seconds - Math.floor(spent.current / 1000);
-    const [hour, minute, second] = extractToHourMinuteAndSecondWithPadZero(secs);
+    const secondsLeft = seconds - millisToSeconds(spent.current);
+    const [hour, minute, second] = extractToHourMinuteAndSecondWithPadZero(secondsLeft);
 
     setHour((_) => hour);
     setMinute((_) => minute);
     setSecond((_) => second);
 
+    // stop when it's not playing
     if (!play || null === timeStart.current) return;
 
     const realtimeGap = new Date().getTime() - timeStart.current.getTime();
     spent.current = secondsSpent * 1000 + realtimeGap;
 
+    // update store when it's rounded to a minute
     if (millisToSeconds(spent.current) % 60 === 0) {
       updateSecondsSpent(id, millisToSeconds(spent.current));
     }
