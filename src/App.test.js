@@ -20,7 +20,7 @@ describe("Test", () => {
 
   test('renders learn react link', () => {
     render(<App />);
-    const linkElement = screen.getByText(/MultiTimer/i);
+    const linkElement = screen.getByText(/Kaizen/i);
     expect(linkElement).toBeInTheDocument();
   });
 });

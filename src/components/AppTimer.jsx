@@ -28,7 +28,7 @@ function AppTimer() {
       <Row justify="space-between" align="middle">
         <Col>
           <Title level={2} style={{ fontWeight: 300 }}>
-            MultiTimer
+            Kaizen
           </Title>
         </Col>
         <Col>
