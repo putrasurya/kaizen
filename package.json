@@ -41,6 +41,10 @@
       "last 1 safari version"
     ]
   },
+  "engines": {
+    "node": ">=18.0.0 <19.0.0",
+    "npm": ">=8.0.0"
+  },
   "devDependencies": {
     "react-snap": "^1.23.0"
   }
