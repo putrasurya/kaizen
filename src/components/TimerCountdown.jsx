@@ -2,6 +2,7 @@
 import { Typography, Space, Tooltip } from "antd";
 import { useEffect, useState, useRef, useContext } from "react";
 import { store } from "../redux/store";
+import { millisToSeconds, secondsToMillis, extractToHourMinuteAndSecondWithPadZero } from "../utilities/time-helper";
 
 const { Title } = Typography;
 
@@ -13,7 +14,7 @@ function Buzz() {
 }
 
 export default function Countdown({ id, play, seconds, secondsSpent, setPlay, className }) {
-  const { updateSecondsSpent } = useContext(store);
+  const { updateSecondsSpent, incrementReps } = useContext(store);
   const [hour, setHour] = useState(0);
   const [minute, setMinute] = useState("00");
   const [second, setSecond] = useState("00");
@@ -23,6 +24,7 @@ export default function Countdown({ id, play, seconds, secondsSpent, setPlay, cl
 
   useEffect(() => {
     playPropChanged();
+    if (!play) return;
     tiktok();
   }, [play]);
 
@@ -61,6 +63,7 @@ export default function Countdown({ id, play, seconds, secondsSpent, setPlay, cl
         setMinute((_) => "00");
         setSecond((_) => "00");
         updateSecondsSpent(id, seconds);
+        incrementReps(id);
         if (play === true) {
           Buzz();
         }
@@ -100,24 +103,4 @@ export default function Countdown({ id, play, seconds, secondsSpent, setPlay, cl
       </Tooltip>
     </Space>
   );
-}
-
-function extractToHourMinuteAndSecond(secs) {
-    const hour = Math.floor(secs / 3600);
-    const minute = Math.floor((secs % 3600) / 60);
-    const second = secs % 60;
-    return [hour, minute, second];
-}
-
-function extractToHourMinuteAndSecondWithPadZero(secs) {
-  const [hour, minute, second] = extractToHourMinuteAndSecond(secs);
-  return [hour, String(minute).padStart(2, "0"), String(second).padStart(2, "0")];
-}
-
-function millisToSeconds(millis) {
-  return Math.floor(millis/1000);
-}
-
-function secondsToMillis(seconds) {
-  return seconds*1000;
 }

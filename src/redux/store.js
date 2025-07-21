@@ -11,6 +11,8 @@ function reducer(state, action) {
         title: payload.title,
         seconds: payload.seconds,
         secondsSpent: payload.secondsSpent,
+        initial: payload.seconds,
+        reps: 0,
       };
       updatedState = { ...state, timers: [timer, ...state.timers] };
       break;
@@ -24,6 +26,34 @@ function reducer(state, action) {
           return {
             ...timer,
             ...payload,
+          };
+        }),
+      };
+      break;
+    }
+
+    case "incrementReps": {
+      updatedState = {
+        ...state,
+        timers: state.timers.map((timer) => {
+          if (timer.id !== payload.id) return timer;
+          return {
+            ...timer,
+            reps: timer.reps + 1,
+          };
+        }),
+      };
+      break;
+    }
+
+    case "resetReps": {
+      updatedState = {
+        ...state,
+        timers: state.timers.map((timer) => {
+          if (timer.id !== payload.id) return timer;
+          return {
+            ...timer,
+            reps: 0,
           };
         }),
       };
@@ -125,6 +155,20 @@ function StoreProvider({ children }) {
     });
   };
 
+  const incrementReps = (id) => {
+    dispatch({
+      type: "incrementReps",
+      payload: { id },
+    });
+  };
+
+  const resetReps = (id) => {
+    dispatch({
+      type: "resetReps",
+      payload: { id },
+    });
+  };
+
   const addNote = (content) => {
     dispatch({
       type: "addNote",
@@ -170,6 +214,8 @@ function StoreProvider({ children }) {
         embeds: state.embeds,
         addEmbed,
         deleteEmbed,
+        incrementReps,
+        resetReps
       }}
     >
       {children}
