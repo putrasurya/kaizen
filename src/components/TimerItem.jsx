@@ -9,6 +9,7 @@ import { Button, Card, Col, Row, Space, Modal, Typography } from "antd";
 import TimerCountdown from "./TimerCountdown";
 import { store } from "../redux/store";
 import styles from "./TimerItem.module.css";
+import TimerItemReps from "./TimerItemReps";
 
 function TimerItem({ timer }) {
   const { deleteTimer, updateSecondsSpent } = useContext(store);
@@ -40,7 +41,8 @@ function TimerItem({ timer }) {
     <Card className={play?styles.timer_play:styles.timer_pause } size="small">
       <Row justify="space-between" align="middle" wrap={false}>
         <Col flex="auto">
-          <Typography.Text ellipsis style={{paddingRight: 15}}>{timer.title}</Typography.Text>
+          <Typography.Text ellipsis style={{paddingRight: 15, display: "block"}}>{timer.title}</Typography.Text>
+          <TimerItemReps timer={timer} />
         </Col>
         <Col flex="none">
           <Space align="center" size="middle">
