@@ -85,10 +85,10 @@ The project includes a Dockerfile for containerized deployment:
 
 ```bash
 # Build the Docker image
-docker build -t kaizen .
+docker build -t kaizen:v1.0 .
 
 # Run the container
-docker run -p 3000:3000 kaizen
+docker run -p 8080:80 kaizen:v1.0
 ```
 
 ## 🤝 Contributing
