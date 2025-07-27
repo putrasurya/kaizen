@@ -2,6 +2,8 @@
 
 A modern productivity application that combines timer management with note-taking functionality to help you practice continuous improvement in your daily workflow.
 
+![Kaizen Demo](./screenshot.png)
+
 ## ✨ Features
 
 - **Timer Management**: Create, manage, and track multiple timers for different tasks
@@ -85,10 +87,10 @@ The project includes a Dockerfile for containerized deployment:
 
 ```bash
 # Build the Docker image
-docker build -t kaizen .
+docker build -t kaizen:v1.0 .
 
 # Run the container
-docker run -p 3000:3000 kaizen
+docker run -p 8080:80 kaizen:v1.0
 ```
 
 ## 🤝 Contributing
