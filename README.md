@@ -2,6 +2,8 @@
 
 A modern productivity application that combines timer management with note-taking functionality to help you practice continuous improvement in your daily workflow.
 
+![Kaizen Demo](./screenshot.png)
+
 ## ✨ Features
 
 - **Timer Management**: Create, manage, and track multiple timers for different tasks
