@@ -2,31 +2,25 @@
   "name": "kaizen",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
-    "@ant-design/dark-theme": "^2.0.2",
-    "@ant-design/icons": "^4.6.3",
-    "@craco/craco": "^6.2.0",
-    "@testing-library/jest-dom": "^5.14.1",
-    "@testing-library/react": "^11.2.7",
-    "@testing-library/user-event": "^12.8.3",
-    "antd": "^4.16.13",
-    "craco-less": "^1.20.0",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "react-scripts": "4.0.3",
+    "@ant-design/icons": "^6.3.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.6",
+    "@vitejs/plugin-react": "^6.1.0",
+    "antd": "^6.6.1",
+    "jsdom": "^30.0.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11",
     "web-vitals": "^1.1.2"
   },
   "scripts": {
-    "start": "craco --openssl-legacy-provider start",
-    "build": "craco --openssl-legacy-provider build",
-    "test": "craco test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "start": "vite",
+    "build": "vite build",
+    "test": "vitest run"
   },
   "browserslist": {
     "production": [
@@ -41,7 +35,7 @@
     ]
   },
   "engines": {
-    "node": ">=18.0.0 <19.0.0",
+    "node": "^20.19.0 || >=22.12.0",
     "npm": ">=8.0.0"
   }
 }

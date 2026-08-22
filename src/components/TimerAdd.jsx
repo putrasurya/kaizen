@@ -71,7 +71,7 @@ function AddTimer() {
         Add Timer
       </Button>
       <Modal
-        visible={show}
+        open={show}
         width={417}
         title="Add Timer"
         onCancel={() => {

@@ -17,7 +17,7 @@ A modern productivity application that combines timer management with note-takin
 
 ### Prerequisites
 
-- Node.js (>=18.0.0 <19.0.0)
+- Node.js (^20.19.0 or >=22.12.0)
 - npm (>=8.0.0)
 
 ### Installation
@@ -38,32 +38,27 @@ npm install
 npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the app in your browser.
+Open [http://localhost:5173](http://localhost:5173) to view the app in your browser.
 
 ## 🛠️ Available Scripts
 
 ### `npm start`
-Runs the app in development mode with hot reloading enabled.
+Runs the app in development mode with hot module reloading enabled.
 
 ### `npm test`
-Launches the test runner in interactive watch mode.
+Runs the test suite once (CI-friendly). Use `npx vitest` for interactive watch mode.
 
 ### `npm run build`
 Builds the app for production to the `build` folder. The build is optimized and ready for deployment.
 
-### `npm run eject`
-**⚠️ Note: This is a one-way operation. Once you eject, you can't go back!**
-
-Removes the single build dependency and copies all configuration files for full control.
-
 ## 🏗️ Technology Stack
 
-- **Frontend**: React 17, JSX
-- **UI Framework**: Ant Design 4.16
-- **Styling**: CSS Modules, Less
+- **Frontend**: React 19, JSX
+- **UI Framework**: Ant Design 6
+- **Styling**: CSS Modules, CSS-in-JS (via Ant Design)
 - **State Management**: React Context API
-- **Build Tool**: CRACO (Create React App Configuration Override)
-- **Testing**: Jest, React Testing Library
+- **Build Tool**: Vite
+- **Testing**: Vitest, React Testing Library
 
 ## 📁 Project Structure
 
@@ -76,9 +71,9 @@ src/
 │   ├── TimerItem.jsx   # Individual timer display
 │   └── ...
 ├── redux/
-│   └── store.js        # Application state management
+│   └── store.jsx       # Application state management
 ├── App.jsx             # Main application component
-└── index.js            # Application entry point
+└── index.jsx           # Application entry point
 ```
 
 ## 🐳 Docker Support
@@ -107,7 +102,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Built with [Create React App](https://github.com/facebook/create-react-app)
+- Built with [Vite](https://vite.dev/)
 - UI components by [Ant Design](https://ant.design/)
 - Icons by [Ant Design Icons](https://github.com/ant-design/ant-design-icons)
 
