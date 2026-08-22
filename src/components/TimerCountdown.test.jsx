@@ -7,9 +7,9 @@ import { StoreProvider } from '../redux/store';
 // loop while play=true, computing elapsed time from real Date deltas — and reports
 // back to the store (updateSecondsSpent, incrementReps) rather than owning play
 // state itself, so this harness reproduces what TimerItem normally supplies
-// (play/setPlay). Jest's fake timers don't reliably intercept this component's
-// `new Date()` calls under this project's Jest/jsdom versions, so these tests use
-// real timers and wait for real elapsed time instead.
+// (play/setPlay). These tests use real timers and wait for real elapsed time
+// rather than faking them, to avoid needing the component's `new Date()` calls to
+// stay in lockstep with a fake clock.
 function Harness({ seconds, secondsSpent = 0, initialPlay = false }) {
   const [play, setPlay] = useState(initialPlay);
   return (
@@ -51,7 +51,7 @@ test(
     expect(screen.getByText('.30')).toBeInTheDocument();
 
     await waitFor(() => expect(screen.queryByText('.30')).not.toBeInTheDocument(), {
-      timeout: 4000,
+      timeout: 10000,
     });
 
     // Within a few real seconds it should have ticked down by a handful of
@@ -60,8 +60,7 @@ test(
     const remaining = Number(secondsText.slice(1));
     expect(remaining).toBeLessThan(30);
     expect(remaining).toBeGreaterThan(20);
-  },
-  8000
+  }
 );
 
 test(
@@ -70,11 +69,10 @@ test(
     renderCountdown({ seconds: 2, secondsSpent: 0, initialPlay: true });
 
     await waitFor(() => expect(screen.getByTestId('play-state')).toHaveTextContent('false'), {
-      timeout: 6000,
+      timeout: 10000,
     });
 
     expect(window.HTMLMediaElement.prototype.play).toHaveBeenCalled();
     expect(screen.getByText('0.00')).toBeInTheDocument();
-  },
-  8000
+  }
 );

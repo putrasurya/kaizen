@@ -46,7 +46,7 @@ function readState() {
 }
 
 function readPersistedState() {
-  return JSON.parse(window.localStorage.getItem(process.env.REACT_APP_STORAGEKEY));
+  return JSON.parse(window.localStorage.getItem(import.meta.env.VITE_STORAGEKEY));
 }
 
 describe('store reducer (via StoreProvider)', () => {

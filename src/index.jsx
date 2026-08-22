@@ -8,6 +8,12 @@ import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { StoreProvider } from "./redux/store";
 
+// Modal.confirm() (used by TimerItem's delete/reset confirmations) is a static
+// method that renders into its own root outside the component tree, so it
+// doesn't inherit the <ConfigProvider> below — it needs the dark theme set here
+// too, or its dialog renders with antd's light-theme default.
+ConfigProvider.config({ theme: { algorithm: theme.darkAlgorithm } });
+
 const rootElement = document.getElementById("root");
 const app = (
   <React.StrictMode>
@@ -27,7 +33,7 @@ if (rootElement.hasChildNodes()) {
 
 function InitializeAudio() {
   const audio = document.createElement('audio');
-  audio.src = `${process.env.REACT_APP_BUZZ_WAV}`;
+  audio.src = `${import.meta.env.VITE_BUZZ_WAV}`;
   audio.autoplay = true;
   audio.hidden = true;
   audio.volume = 0;
