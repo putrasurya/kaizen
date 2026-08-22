@@ -32,11 +32,13 @@ function Harness() {
 }
 
 function renderHarness() {
-  return render(
+  const user = userEvent.setup();
+  render(
     <StoreProvider>
       <Harness />
     </StoreProvider>
   );
+  return user;
 }
 
 function readState() {
@@ -48,10 +50,10 @@ function readPersistedState() {
 }
 
 describe('store reducer (via StoreProvider)', () => {
-  test('addTimer adds a timer with initial reps/secondsSpent and persists it', () => {
-    renderHarness();
+  test('addTimer adds a timer with initial reps/secondsSpent and persists it', async () => {
+    const user = renderHarness();
 
-    userEvent.click(screen.getByText('addTimer'));
+    await user.click(screen.getByText('addTimer'));
 
     expect(readState()).toContain('"title":"Focus"');
     expect(readState()).toContain('"seconds":3600');
@@ -59,57 +61,57 @@ describe('store reducer (via StoreProvider)', () => {
     expect(readPersistedState().timers[0]).toMatchObject({ title: 'Focus', seconds: 3600, reps: 0 });
   });
 
-  test('updateSecondsSpent updates the matching timer only', () => {
-    renderHarness();
+  test('updateSecondsSpent updates the matching timer only', async () => {
+    const user = renderHarness();
 
-    userEvent.click(screen.getByText('addTimer'));
-    userEvent.click(screen.getByText('updateSecondsSpent'));
+    await user.click(screen.getByText('addTimer'));
+    await user.click(screen.getByText('updateSecondsSpent'));
 
     expect(readState()).toContain('"secondsSpent":120');
     expect(readPersistedState().timers[0].secondsSpent).toBe(120);
   });
 
-  test('incrementReps and resetReps update the reps counter', () => {
-    renderHarness();
+  test('incrementReps and resetReps update the reps counter', async () => {
+    const user = renderHarness();
 
-    userEvent.click(screen.getByText('addTimer'));
-    userEvent.click(screen.getByText('incrementReps'));
-    userEvent.click(screen.getByText('incrementReps'));
+    await user.click(screen.getByText('addTimer'));
+    await user.click(screen.getByText('incrementReps'));
+    await user.click(screen.getByText('incrementReps'));
     expect(readState()).toContain('"reps":2');
 
-    userEvent.click(screen.getByText('resetReps'));
+    await user.click(screen.getByText('resetReps'));
     expect(readState()).toContain('"reps":0');
   });
 
-  test('deleteTimer removes the timer', () => {
-    renderHarness();
+  test('deleteTimer removes the timer', async () => {
+    const user = renderHarness();
 
-    userEvent.click(screen.getByText('addTimer'));
+    await user.click(screen.getByText('addTimer'));
     expect(readState()).toContain('"title":"Focus"');
 
-    userEvent.click(screen.getByText('deleteTimer'));
+    await user.click(screen.getByText('deleteTimer'));
     expect(readPersistedState().timers).toEqual([]);
   });
 
-  test('addNote and deleteNote', () => {
-    renderHarness();
+  test('addNote and deleteNote', async () => {
+    const user = renderHarness();
 
-    userEvent.click(screen.getByText('addNote'));
+    await user.click(screen.getByText('addNote'));
     expect(readState()).toContain('remember this');
     expect(readPersistedState().notes[0]).toMatchObject({ content: 'remember this' });
 
-    userEvent.click(screen.getByText('deleteNote'));
+    await user.click(screen.getByText('deleteNote'));
     expect(readPersistedState().notes).toEqual([]);
   });
 
-  test('addEmbed and deleteEmbed', () => {
-    renderHarness();
+  test('addEmbed and deleteEmbed', async () => {
+    const user = renderHarness();
 
-    userEvent.click(screen.getByText('addEmbed'));
+    await user.click(screen.getByText('addEmbed'));
     expect(readState()).toContain('abc123');
     expect(readPersistedState().embeds[0]).toMatchObject({ link: 'abc123' });
 
-    userEvent.click(screen.getByText('deleteEmbed'));
+    await user.click(screen.getByText('deleteEmbed'));
     expect(readPersistedState().embeds).toEqual([]);
   });
 });

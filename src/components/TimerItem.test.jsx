@@ -19,49 +19,51 @@ function Harness({ seconds = 3600, secondsSpent = 0 }) {
   );
 }
 
-function renderTimerItem(overrides = {}) {
+async function renderTimerItem(overrides = {}) {
+  const user = userEvent.setup();
   render(
     <StoreProvider>
       <Harness {...overrides} />
     </StoreProvider>
   );
-  userEvent.click(screen.getByText('seed'));
+  await user.click(screen.getByText('seed'));
+  return user;
 }
 
-test('shows the timer title', () => {
-  renderTimerItem();
+test('shows the timer title', async () => {
+  await renderTimerItem();
   expect(screen.getByText('Focus on Works')).toBeInTheDocument();
 });
 
-test('play button toggles to pause and back', () => {
-  renderTimerItem();
+test('play button toggles to pause and back', async () => {
+  const user = await renderTimerItem();
 
   const playButton = screen.getByRole('button', { name: 'play-circle' });
-  userEvent.click(playButton);
+  await user.click(playButton);
   expect(screen.getByRole('button', { name: 'pause-circle' })).toBeInTheDocument();
 
-  userEvent.click(screen.getByRole('button', { name: 'pause-circle' }));
+  await user.click(screen.getByRole('button', { name: 'pause-circle' }));
   expect(screen.getByRole('button', { name: 'play-circle' })).toBeInTheDocument();
 });
 
-test('play button is disabled once the timer is fully spent', () => {
-  renderTimerItem({ seconds: 60, secondsSpent: 60 });
+test('play button is disabled once the timer is fully spent', async () => {
+  await renderTimerItem({ seconds: 60, secondsSpent: 60 });
   expect(screen.getByRole('button', { name: 'play-circle' })).toBeDisabled();
 });
 
-test('reset/delete buttons are disabled while playing', () => {
-  renderTimerItem();
+test('reset/delete buttons are disabled while playing', async () => {
+  const user = await renderTimerItem();
 
-  userEvent.click(screen.getByRole('button', { name: 'play-circle' }));
+  await user.click(screen.getByRole('button', { name: 'play-circle' }));
 
   expect(screen.getByRole('button', { name: 'undo' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'delete' })).toBeDisabled();
 });
 
 test('confirming delete removes the timer via Modal.confirm', async () => {
-  renderTimerItem();
+  const user = await renderTimerItem();
 
-  userEvent.click(screen.getByRole('button', { name: 'delete' }));
+  await user.click(screen.getByRole('button', { name: 'delete' }));
 
   // A stale, not-yet-removed confirm dialog from an earlier test can briefly
   // coexist under jsdom (see setupTests.js), so locate this dialog by its title
@@ -69,21 +71,21 @@ test('confirming delete removes the timer via Modal.confirm', async () => {
   const title = await screen.findByText(/delete timer\?/i);
   const dialog = title.closest('[role="dialog"]');
 
-  userEvent.click(within(dialog).getByRole('button', { name: 'OK' }));
+  await user.click(within(dialog).getByRole('button', { name: 'OK' }));
 
   // Modal.confirm's onOk dispatches deleteTimer synchronously.
   expect(screen.queryByText('Focus on Works')).not.toBeInTheDocument();
 });
 
 test('confirming reset zeroes secondsSpent', async () => {
-  renderTimerItem({ secondsSpent: 600 });
+  const user = await renderTimerItem({ secondsSpent: 600 });
 
-  userEvent.click(screen.getByRole('button', { name: 'undo' }));
+  await user.click(screen.getByRole('button', { name: 'undo' }));
 
   const title = await screen.findByText(/reset timer\?/i);
   const dialog = title.closest('[role="dialog"]');
 
-  userEvent.click(within(dialog).getByRole('button', { name: 'OK' }));
+  await user.click(within(dialog).getByRole('button', { name: 'OK' }));
 
   // 1h (3600s) with nothing spent shows as "1.00" on the countdown.
   expect(await screen.findByText('1.00')).toBeInTheDocument();

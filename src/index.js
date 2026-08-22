@@ -1,5 +1,5 @@
 import React from "react";
-import { hydrate, render } from "react-dom";
+import { hydrateRoot, createRoot } from "react-dom/client";
 import "antd/dist/antd.less";
 import "./utilities.less";
 import "./index.css";
@@ -8,24 +8,18 @@ import reportWebVitals from "./reportWebVitals";
 import { StoreProvider } from "./redux/store";
 
 const rootElement = document.getElementById("root");
+const app = (
+  <React.StrictMode>
+    <StoreProvider>
+      <App />
+    </StoreProvider>
+  </React.StrictMode>
+);
+
 if (rootElement.hasChildNodes()) {
-  hydrate(
-    <React.StrictMode>
-      <StoreProvider>
-        <App />
-      </StoreProvider>
-    </React.StrictMode>,
-    rootElement
-  );
+  hydrateRoot(rootElement, app);
 } else {
-  render(
-    <React.StrictMode>
-      <StoreProvider>
-        <App />
-      </StoreProvider>
-    </React.StrictMode>,
-    rootElement
-  );
+  createRoot(rootElement).render(app);
 }
 
 function InitializeAudio() {

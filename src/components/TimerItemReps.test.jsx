@@ -18,33 +18,35 @@ function Harness({ initial }) {
 }
 
 function renderHarness(initial = 90) {
-  return render(
+  const user = userEvent.setup();
+  render(
     <StoreProvider>
       <Harness initial={initial} />
     </StoreProvider>
   );
+  return user;
 }
 
-test('renders reps count and total elapsed time from initial * reps', () => {
-  renderHarness(90);
+test('renders reps count and total elapsed time from initial * reps', async () => {
+  const user = renderHarness(90);
 
-  userEvent.click(screen.getByText('addTimer'));
-  userEvent.click(screen.getByText('incrementReps'));
-  userEvent.click(screen.getByText('incrementReps'));
-  userEvent.click(screen.getByText('incrementReps'));
+  await user.click(screen.getByText('addTimer'));
+  await user.click(screen.getByText('incrementReps'));
+  await user.click(screen.getByText('incrementReps'));
+  await user.click(screen.getByText('incrementReps'));
 
   // 90s * 3 reps = 270s = 0:4:30
   expect(screen.getByText('3 Reps | 0:4:30')).toBeInTheDocument();
 });
 
-test('clicking reset resets the reps counter to zero', () => {
-  renderHarness(90);
+test('clicking reset resets the reps counter to zero', async () => {
+  const user = renderHarness(90);
 
-  userEvent.click(screen.getByText('addTimer'));
-  userEvent.click(screen.getByText('incrementReps'));
+  await user.click(screen.getByText('addTimer'));
+  await user.click(screen.getByText('incrementReps'));
   expect(screen.getByText(/1 Reps/)).toBeInTheDocument();
 
-  userEvent.click(screen.getByText('reset'));
+  await user.click(screen.getByText('reset'));
 
   expect(screen.getByText(/0 Reps/)).toBeInTheDocument();
 });
