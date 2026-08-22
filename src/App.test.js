@@ -1,26 +1,18 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
+import { StoreProvider } from './redux/store';
 
-describe("Test", () => {
-  beforeAll(() => {
-    Object.defineProperty(window, "matchMedia", {
-      writable: true,
-      value: jest.fn().mockImplementation(query => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addListener: jest.fn(), // Deprecated
-        removeListener: jest.fn(), // Deprecated
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        dispatchEvent: jest.fn(),
-      }))
-    });
-  });
+describe("App", () => {
+  test('renders the Kaizen title, note list, timer list and footer together', () => {
+    render(
+      <StoreProvider>
+        <App />
+      </StoreProvider>
+    );
 
-  test('renders learn react link', () => {
-    render(<App />);
-    const linkElement = screen.getByText(/Kaizen/i);
-    expect(linkElement).toBeInTheDocument();
+    expect(screen.getByText(/Kaizen/i)).toBeInTheDocument();
+    expect(screen.getByText(/Take Note/i)).toBeInTheDocument();
+    expect(screen.getByText(/Add Timer/i)).toBeInTheDocument();
+    expect(screen.getByText(/Putra Surya/i)).toBeInTheDocument();
   });
 });
