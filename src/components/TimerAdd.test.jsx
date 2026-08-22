@@ -16,6 +16,15 @@ function renderAppTimer() {
   return user;
 }
 
+// antd 6's Radio.Button gives the underlying <input> `pointer-events: none` (the
+// wrapping <label> is the actual click target, styled to look like a button) —
+// userEvent v14 refuses to click an element with pointer-events: none, so click the
+// label instead of the radio input getByRole('radio', ...) resolves to.
+async function clickRadioOption(user, name) {
+  const input = screen.getByRole('radio', { name });
+  await user.click(input.closest('label'));
+}
+
 test('the default preview shows 1 hour 0 minutes before any changes', async () => {
   const user = renderAppTimer();
 
@@ -31,7 +40,7 @@ test('changing the minute radio updates the live preview', async () => {
   const user = renderAppTimer();
 
   await user.click(screen.getByRole('button', { name: /add timer/i }));
-  await user.click(screen.getByRole('radio', { name: '20m' }));
+  await clickRadioOption(user, '20m');
 
   expect(screen.getByText('20')).toBeInTheDocument();
   expect(screen.getByText('minutes')).toBeInTheDocument();
@@ -43,7 +52,7 @@ test('submitting adds a timer with the summed seconds from selected radios', asy
   await user.click(screen.getByRole('button', { name: /add timer/i }));
   await user.type(screen.getByPlaceholderText(/Focus on Works/i), 'Deep Work');
   // Leave hours1 (1H) / hours2 (0H) at their defaults; only change minutes1 to 20m.
-  await user.click(screen.getByRole('radio', { name: '20m' }));
+  await clickRadioOption(user, '20m');
   await user.click(screen.getByRole('button', { name: 'OK' }));
 
   expect(await screen.findByText('Deep Work')).toBeInTheDocument();

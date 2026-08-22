@@ -40,7 +40,7 @@ function AppTimer() {
             >
               {totalHour()}
             </Title>
-            <Divider type="vertical" className={styles.hide_on_mobile} />
+            <Divider orientation="vertical" className={styles.hide_on_mobile} />
             <Tooltip title="Represent times left from 24 hours of today" className={styles.hide_on_mobile}>
               <Text>{hourLeftForToday()}h/24h</Text>
             </Tooltip>

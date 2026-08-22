@@ -62,7 +62,7 @@ function AppEmbed() {
         )}
       />
       <Modal
-        visible={show}
+        open={show}
         title="Embed Youtube Video. Place the video id here"
         onOk={() => form.submit()}
         onCancel={() => setShow(false)}

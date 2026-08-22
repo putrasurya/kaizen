@@ -1,7 +1,8 @@
 import React from "react";
 import { hydrateRoot, createRoot } from "react-dom/client";
-import "antd/dist/antd.less";
-import "./utilities.less";
+import { ConfigProvider, theme } from "antd";
+import "antd/dist/reset.css";
+import "./utilities.css";
 import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
@@ -10,9 +11,11 @@ import { StoreProvider } from "./redux/store";
 const rootElement = document.getElementById("root");
 const app = (
   <React.StrictMode>
-    <StoreProvider>
-      <App />
-    </StoreProvider>
+    <ConfigProvider theme={{ algorithm: theme.darkAlgorithm }}>
+      <StoreProvider>
+        <App />
+      </StoreProvider>
+    </ConfigProvider>
   </React.StrictMode>
 );
 

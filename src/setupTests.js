@@ -5,6 +5,44 @@
 import '@testing-library/jest-dom';
 import { Modal } from 'antd';
 
+// antd 6's CSS-in-JS style injection adds real per-interaction overhead (a form
+// field click can take several real seconds on a loaded machine), enough to
+// brush against Jest's 5000ms default per-test timeout under full-suite
+// contention even though nothing is actually hung.
+jest.setTimeout(20000);
+
+// The jsdom version bundled with this project's Jest doesn't implement
+// MessageChannel, which antd 6's Form internals (@rc-component/form) use to
+// schedule field-watcher notifications. Node's own worker_threads.MessageChannel
+// works but uses real OS-level message ports that don't reliably fire (or tear
+// down) inside jsdom's test environment, causing tests to hang — this minimal
+// setTimeout-based polyfill is enough for same-thread postMessage/onmessage use.
+if (typeof globalThis.MessageChannel === 'undefined') {
+  class FakeMessagePort {
+    postMessage(data) {
+      setTimeout(() => this._other?.onmessage?.({ data }), 0);
+    }
+  }
+  globalThis.MessageChannel = class FakeMessageChannel {
+    constructor() {
+      this.port1 = new FakeMessagePort();
+      this.port2 = new FakeMessagePort();
+      this.port1._other = this.port2;
+      this.port2._other = this.port1;
+    }
+  };
+}
+
+// jsdom doesn't implement ResizeObserver, which antd 6's Typography ellipsis
+// measurement (used by TimerItem's title) relies on.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 // antd's responsiveObserve reads window.matchMedia at module-import time, so this
 // must run in setupFiles (before any test file's imports), not in a per-test
 // beforeAll. This is a plain function, not jest.fn(): CRA's jest preset sets

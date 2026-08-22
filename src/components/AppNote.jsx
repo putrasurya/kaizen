@@ -56,7 +56,7 @@ function AppNote() {
         )}
       />
       <Modal
-        visible={show}
+        open={show}
         title="What to remind?"
         onOk={() => form.submit()}
         onCancel={() => setShow(false)}

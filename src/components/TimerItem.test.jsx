@@ -1,8 +1,26 @@
 import { useContext } from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TimerItem from './TimerItem';
 import { store, StoreProvider } from '../redux/store';
+
+// antd 6's Modal.confirm renders its title text in two places (an accessible
+// header `.ant-modal-title` and the visual `.ant-modal-confirm-title`), so a plain
+// text query is ambiguous — scope to the confirm-specific class. A stale,
+// not-yet-removed dialog from an earlier test can also briefly coexist under jsdom
+// (see setupTests.js), so take the most recently rendered match rather than
+// assuming there's only one.
+async function findConfirmDialog(regex) {
+  let title;
+  await waitFor(() => {
+    const candidates = Array.from(document.querySelectorAll('.ant-modal-confirm-title')).filter((el) =>
+      regex.test(el.textContent)
+    );
+    if (!candidates.length) throw new Error(`No confirm dialog matching ${regex} yet`);
+    title = candidates[candidates.length - 1];
+  });
+  return title.closest('[role="dialog"]');
+}
 
 // Mirrors how AppTimer actually uses TimerItem: mapped from context state, not a
 // static prop. This makes delete/reset (which dispatch through context) actually
@@ -65,11 +83,7 @@ test('confirming delete removes the timer via Modal.confirm', async () => {
 
   await user.click(screen.getByRole('button', { name: 'delete' }));
 
-  // A stale, not-yet-removed confirm dialog from an earlier test can briefly
-  // coexist under jsdom (see setupTests.js), so locate this dialog by its title
-  // text rather than assuming it's the only role="dialog" element present.
-  const title = await screen.findByText(/delete timer\?/i);
-  const dialog = title.closest('[role="dialog"]');
+  const dialog = await findConfirmDialog(/delete timer\?/i);
 
   await user.click(within(dialog).getByRole('button', { name: 'OK' }));
 
@@ -82,8 +96,7 @@ test('confirming reset zeroes secondsSpent', async () => {
 
   await user.click(screen.getByRole('button', { name: 'undo' }));
 
-  const title = await screen.findByText(/reset timer\?/i);
-  const dialog = title.closest('[role="dialog"]');
+  const dialog = await findConfirmDialog(/reset timer\?/i);
 
   await user.click(within(dialog).getByRole('button', { name: 'OK' }));
 
