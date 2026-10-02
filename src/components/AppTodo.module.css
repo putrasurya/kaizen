@@ -1,0 +1,33 @@
+.add {
+  margin-top: 12px;
+}
+
+.item {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+
+.text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.check {
+  padding-right: 12px;
+}
+
+.done {
+  text-decoration: line-through;
+  opacity: 0.45;
+}
+
+/* Phones: a 40px tap area around the checkbox. */
+@media screen and (max-width: 575px) {
+  .check {
+    display: inline-flex;
+    align-items: center;
+    min-width: 40px;
+    min-height: 40px;
+    padding-right: 4px;
+  }
+}

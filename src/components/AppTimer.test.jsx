@@ -1,16 +1,9 @@
-import { act, render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { act, screen } from '@testing-library/react';
 import AppTimer from './AppTimer';
-import { StoreProvider } from '../redux/store';
+import { renderWithDay, dayRadio, pickDay } from '../test-utils/renderWithDay';
 
 function renderAppTimer() {
-  const user = userEvent.setup();
-  render(
-    <StoreProvider>
-      <AppTimer />
-    </StoreProvider>
-  );
-  return user;
+  return renderWithDay(<AppTimer />);
 }
 
 async function addTimer(user, title) {
@@ -19,10 +12,10 @@ async function addTimer(user, title) {
   await user.click(screen.getByRole('button', { name: 'OK' }));
 }
 
-test('renders the Kaizen title and an Add Timer control with no timers', () => {
+test('renders the Timers heading and an Add Timer control with no timers', () => {
   renderAppTimer();
 
-  expect(screen.getByText('Kaizen')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Timers' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /add timer/i })).toBeInTheDocument();
   expect(screen.getByText('0.0 Times left')).toBeInTheDocument();
 });
@@ -69,15 +62,6 @@ describe('day view', () => {
         })),
       })
     );
-  }
-
-  function dayRadio(name) {
-    return screen.getByRole('radio', { name });
-  }
-
-  // Segmented hides its radio inputs; the wrapping label is the click target.
-  async function pickDay(user, name) {
-    await user.click(dayRadio(name).closest('label'));
   }
 
   test('shows only today\'s timers by default, with today selected and marked', () => {

@@ -1,19 +1,12 @@
-import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen, within } from '@testing-library/react';
 import AppTimer from './AppTimer';
-import { StoreProvider } from '../redux/store';
+import { renderWithDay } from '../test-utils/renderWithDay';
 
 // AppTimer renders TimerAdd itself, so tests exercise TimerAdd through AppTimer
 // rather than mounting it standalone (avoids duplicate "Add Timer" buttons and lets
 // the "submit adds a timer" test assert against the resulting TimerItem).
 function renderAppTimer() {
-  const user = userEvent.setup();
-  render(
-    <StoreProvider>
-      <AppTimer />
-    </StoreProvider>
-  );
-  return user;
+  return renderWithDay(<AppTimer />);
 }
 
 async function openDialog(user) {

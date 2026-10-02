@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import AppNote from './AppNote';
 import { StoreProvider } from '../redux/store';
 import { mockViewportWidth } from '../test-utils/mockViewport';
+import { renderWithDay, pickDay } from '../test-utils/renderWithDay';
 
 function renderNote() {
   const user = userEvent.setup();
@@ -66,5 +67,67 @@ describe('responsive layout', () => {
 
     await user.click(addButton);
     expect(screen.getByPlaceholderText(/do something at 3am/i)).not.toHaveClass('ant-input-lg');
+  });
+});
+
+describe('notes by day', () => {
+  const KEY = import.meta.env.VITE_STORAGEKEY;
+
+  // Only Date is faked; userEvent and antd need real timers. 2026-10-02 is a Friday.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 2, 10, 0, 0));
+    window.localStorage.setItem(KEY, JSON.stringify({
+      version: 3,
+      timers: [],
+      todos: [],
+      embeds: [],
+      notes: [
+        { id: 1, day: 'fri', content: 'friday note' },
+        { id: 2, day: 'mon', content: 'monday note' },
+      ],
+    }));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  test('shows only the notes of the selected day', async () => {
+    const user = renderWithDay(<AppNote />);
+
+    expect(screen.getByText('friday note')).toBeInTheDocument();
+    expect(screen.queryByText('monday note')).not.toBeInTheDocument();
+
+    await pickDay(user, /^Mon$/);
+    expect(screen.getByText('monday note')).toBeInTheDocument();
+    expect(screen.queryByText('friday note')).not.toBeInTheDocument();
+  });
+
+  test('a note added while viewing a day belongs to that day', async () => {
+    const user = renderWithDay(<AppNote />);
+
+    await pickDay(user, /^Wed$/);
+    await user.click(screen.getByRole('button', { name: /plus/i }));
+    expect(screen.getByText('What to remind on Wednesday?')).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText(/do something at 3am/i), 'midweek check');
+    await user.click(screen.getByRole('button', { name: 'OK' }));
+
+    expect(await screen.findByText('midweek check')).toBeInTheDocument();
+    const saved = JSON.parse(window.localStorage.getItem(KEY)).notes;
+    expect(saved.find((n) => n.content === 'midweek check').day).toBe('wed');
+
+    await pickDay(user, /^Fri/);
+    expect(screen.queryByText('midweek check')).not.toBeInTheDocument();
+  });
+
+  test('a blank note is not added', async () => {
+    const user = renderWithDay(<AppNote />);
+
+    await user.click(screen.getByRole('button', { name: /plus/i }));
+    await user.type(screen.getByPlaceholderText(/do something at 3am/i), '   ');
+    await user.click(screen.getByRole('button', { name: 'OK' }));
+
+    await vi.waitFor(() => {
+      expect(JSON.parse(window.localStorage.getItem(KEY)).notes).toHaveLength(2);
+    });
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
   });
 });

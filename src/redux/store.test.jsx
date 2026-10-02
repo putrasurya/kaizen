@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { store, StoreProvider, loadState, STATE_VERSION } from './store';
+import { store, StoreProvider, loadState, STATE_VERSION, isTodoDone } from './store';
 import { DAYS } from '../utilities/day-helper';
 
 // redux/store.js's action functions (addTimer, deleteNote, ...) only exist on the
@@ -185,7 +185,6 @@ describe('loadState (persistence and migration)', () => {
     const state = loadState(KEY, 'wed');
 
     expect(state.version).toBe(STATE_VERSION);
-    expect(state.notes).toEqual(legacy.notes);
     expect(state.embeds).toEqual(legacy.embeds);
     expect(state.timers).toHaveLength(14);
     expect(new Set(state.timers.map((t) => t.id)).size).toBe(14);
@@ -230,13 +229,13 @@ describe('loadState (persistence and migration)', () => {
   });
 
   test('missing storage gives an empty current-version state', () => {
-    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], embeds: [] });
+    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], embeds: [] });
   });
 
   test('unparseable storage does not crash and is backed up instead of lost', () => {
     window.localStorage.setItem(KEY, '{"timers": [oops');
 
-    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], embeds: [] });
+    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], embeds: [] });
     expect(window.localStorage.getItem(`${KEY}.backup`)).toBe('{"timers": [oops');
   });
 
@@ -260,11 +259,116 @@ describe('loadState (persistence and migration)', () => {
     const state = loadState(KEY, 'thu');
 
     expect(state.notes).toEqual([]);
+    expect(state.todos).toEqual([]);
     expect(state.embeds).toEqual([]);
     expect(state.timers).toHaveLength(2);
     // No day on current-version data: shown today rather than lost.
     expect(state.timers[0]).toMatchObject({ id: 5, day: 'thu', seconds: 600, secondsSpent: 600, initial: 600, reps: 0 });
     expect(state.timers[1]).toMatchObject({ title: 'Duplicate id', day: 'tue', seconds: 0 });
     expect(state.timers[1].id).not.toBe(5);
+  });
+});
+
+describe('v3: notes per day and todos', () => {
+  const KEY = import.meta.env.VITE_STORAGEKEY;
+  const v2 = {
+    version: 2,
+    timers: [{ id: 10, day: 'mon', title: 'Gym', seconds: 600, secondsSpent: 0, initial: 600, reps: 0 }],
+    notes: [{ id: 1, content: 'call mum' }, { id: 2, content: 'buy milk' }],
+    embeds: [],
+  };
+
+  test('v2 -> v3 copies each note to every weekday, keeps timers, and starts with no todos', () => {
+    window.localStorage.setItem(KEY, JSON.stringify(v2));
+
+    const state = loadState(KEY, 'fri');
+
+    expect(state.version).toBe(3);
+    expect(state.timers).toEqual(v2.timers);
+    expect(state.todos).toEqual([]);
+    expect(state.notes).toHaveLength(14);
+    expect(new Set(state.notes.map((n) => n.id)).size).toBe(14);
+    for (const day of DAYS) {
+      expect(state.notes.filter((n) => n.day === day).map((n) => n.content)).toEqual(['call mum', 'buy milk']);
+    }
+    // Today's copy is the original note.
+    expect(state.notes.find((n) => n.day === 'fri' && n.content === 'call mum').id).toBe(1);
+    expect(readPersistedState()).toEqual(state);
+  });
+
+  test('legacy (no version) -> v3 in a single load', () => {
+    window.localStorage.setItem(KEY, JSON.stringify({
+      timers: [{ id: 1, title: 'Read', seconds: 60, secondsSpent: 0, initial: 60, reps: 0 }],
+      notes: [{ id: 1, content: 'hello' }],
+    }));
+
+    const state = loadState(KEY, 'tue');
+
+    expect(state.version).toBe(3);
+    expect(state.timers).toHaveLength(7);
+    expect(state.notes).toHaveLength(7);
+    expect(state.notes.map((n) => n.day).sort()).toEqual([...DAYS].sort());
+    expect(state.todos).toEqual([]);
+    expect(readPersistedState().version).toBe(3);
+  });
+
+  test('runs only once: deleted note copies and todos are not reset on reload', () => {
+    window.localStorage.setItem(KEY, JSON.stringify(v2));
+    const first = loadState(KEY, 'fri');
+
+    const edited = {
+      ...first,
+      notes: first.notes.filter((n) => n.day === 'fri'),
+      todos: [{ id: 5, day: 'mon', text: 'stretch', doneOn: null }],
+    };
+    window.localStorage.setItem(KEY, JSON.stringify(edited));
+    const second = loadState(KEY, 'sat');
+
+    expect(second).toEqual(edited);
+    expect(loadState(KEY, 'sun')).toEqual(second);
+  });
+
+  test('malformed notes and todos are repaired or dropped, with unique ids', () => {
+    window.localStorage.setItem(KEY, JSON.stringify({
+      version: 3,
+      timers: [],
+      notes: [null, { id: 1, content: 'no day' }, { id: 1, day: 'wed', content: 'dup id' }, { id: 2, day: 'xyz', content: 7 }],
+      todos: [
+        'junk',
+        { id: 1, day: 'mon', text: '   ' },
+        { id: 1, text: 42 },
+        { id: 3, day: 'mon', text: 'a', doneOn: '2026-09-28' },
+        { id: 3, day: 'nope', text: 'b', doneOn: 'yesterday' },
+        { day: 'tue', text: 'c', done: true },
+      ],
+    }));
+
+    const state = loadState(KEY, 'thu');
+
+    expect(state.notes).toHaveLength(3);
+    expect(state.notes[0]).toMatchObject({ id: 1, day: 'thu', content: 'no day' });
+    expect(state.notes[1]).toMatchObject({ day: 'wed', content: 'dup id' });
+    expect(state.notes[1].id).not.toBe(1);
+    expect(state.notes[2]).toMatchObject({ id: 2, day: 'thu', content: '7' });
+
+    expect(state.todos).toHaveLength(3);
+    expect(state.todos[0]).toEqual({ id: 3, day: 'mon', text: 'a', doneOn: '2026-09-28' });
+    expect(state.todos[1]).toMatchObject({ day: 'thu', text: 'b', doneOn: null });
+    expect(state.todos[2]).toMatchObject({ day: 'tue', text: 'c', doneOn: null });
+    expect(new Set(state.todos.map((t) => t.id)).size).toBe(3);
+  });
+});
+
+describe('isTodoDone', () => {
+  // 2026-10-02 is a Friday; its Monday-first week runs 2026-09-28 .. 2026-10-04.
+  test.each([
+    ['fri', '2026-10-02', '2026-10-02', true],
+    ['fri', '2026-10-02', '2026-10-09', false], // a week later: unchecked again
+    ['mon', '2026-09-28', '2026-10-02', true], // earlier this week
+    ['sat', '2026-10-03', '2026-10-02', true], // ticked ahead for later this week
+    ['sun', '2026-09-27', '2026-10-02', false], // last week's Sunday
+    ['mon', null, '2026-10-02', false],
+  ])('%s todo done on %s, today %s -> %s', (day, doneOn, today, expected) => {
+    expect(isTodoDone({ day, doneOn }, today)).toBe(expected);
   });
 });

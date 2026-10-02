@@ -1,23 +1,47 @@
 import { createContext, useReducer } from "react";
-import { DAYS, getTodayKey, isDayKey } from "../utilities/day-helper";
+import { DAYS, getTodayKey, isDateKey, isDayKey, weekDateOf } from "../utilities/day-helper";
 
 // Bump when the persisted shape changes, and add a step to migrateState().
 // 1 (implicit, no `version` field): timers had no `day`.
 // 2: every timer belongs to exactly one weekday via `day`.
-export const STATE_VERSION = 2;
+// 3: notes belong to a weekday too, and there is a per-day `todos` list.
+export const STATE_VERSION = 3;
 
-const emptyState = () => ({ version: STATE_VERSION, timers: [], notes: [], embeds: [] });
+const emptyState = () => ({ version: STATE_VERSION, timers: [], notes: [], todos: [], embeds: [] });
 
-// Timer ids used to be plain Date.now() values, which collide when several
-// timers are created in one action (copies, migration). Keep them numeric and
+// Ids used to be plain Date.now() values, which collide when several records
+// are created in one action (copies, migration). Keep them numeric and
 // time-based, but strictly increasing past every id already in use.
-function idGenerator(timers) {
-  let last = timers.reduce((max, timer) => Math.max(max, timer.id), 0);
+function idGenerator(items) {
+  let last = items.reduce((max, item) => (Number.isFinite(item.id) ? Math.max(max, item.id) : max), 0);
   return () => {
     last = Math.max(Date.now(), last + 1);
     return last;
   };
 }
+
+// Gives every record a unique numeric id, keeping the first use of each valid
+// one. Returns the records and a generator for further fresh ids.
+function withUniqueIds(items) {
+  const nextId = idGenerator(items);
+  const seen = new Set();
+  const unique = items.map((item) => {
+    const id = Number.isFinite(item.id) && !seen.has(item.id) ? item.id : nextId();
+    seen.add(id);
+    return id === item.id ? item : { ...item, id };
+  });
+  return [unique, nextId];
+}
+
+// Records whose day is missing/invalid (hand-edited, partially written) show
+// up today rather than vanishing.
+const onValidDay = (items, today) =>
+  items.map((item) => (isDayKey(item.day) ? item : { ...item, day: today }));
+
+const isRecord = (raw) => !!raw && typeof raw === "object" && !Array.isArray(raw);
+
+const sanitizeList = (list, sanitize) =>
+  (Array.isArray(list) ? list : []).map(sanitize).filter(Boolean);
 
 // A copy keeps the timer's settings and starts with fresh runtime state.
 function copyTimerTo(timer, day, id) {
@@ -40,10 +64,22 @@ export function hasIdenticalTimer(timers, timer, day) {
 const toCount = (value, fallback = 0) =>
   Number.isFinite(value) && value >= 0 ? value : fallback;
 
+// A todo is a recurring item on its weekday's checklist. `doneOn` is the date
+// it was ticked for, and it only counts while it is that weekday's date in the
+// current (Monday-first) week. So every week's list starts unchecked again,
+// without anything having to run at midnight or while the app is closed.
+export function isTodoDone(todo, todayDate) {
+  return todo.doneOn != null && todo.doneOn === weekDateOf(todo.day, todayDate);
+}
+
+export function hasIdenticalTodo(todos, todo, day) {
+  return todos.some((other) => other.id !== todo.id && other.day === day && other.text === todo.text);
+}
+
 // Coerces one persisted timer into a usable shape, or drops it (null) if it
 // isn't even an object. Ids are de-duplicated by the caller.
 function sanitizeTimer(raw) {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  if (!isRecord(raw)) return null;
   const seconds = toCount(raw.seconds);
   return {
     ...raw,
@@ -55,20 +91,24 @@ function sanitizeTimer(raw) {
   };
 }
 
+function sanitizeNote(raw) {
+  if (!isRecord(raw)) return null;
+  return { ...raw, content: typeof raw.content === "string" ? raw.content : String(raw.content ?? "") };
+}
+
+// A todo without usable text can't be shown or edited, so it's dropped.
+function sanitizeTodo(raw) {
+  if (!isRecord(raw) || typeof raw.text !== "string" || !raw.text.trim()) return null;
+  return { id: raw.id, day: raw.day, text: raw.text, doneOn: isDateKey(raw.doneOn) ? raw.doneOn : null };
+}
+
 function migrateState(parsed, today) {
   const version = Number.isFinite(parsed.version) ? parsed.version : 1;
-  let timers = (Array.isArray(parsed.timers) ? parsed.timers : [])
-    .map(sanitizeTimer)
-    .filter(Boolean);
 
-  // Every timer needs a unique numeric id before copies are made from it.
-  const nextId = idGenerator(timers.filter((timer) => Number.isFinite(timer.id)));
-  const seen = new Set();
-  timers = timers.map((timer) => {
-    const id = Number.isFinite(timer.id) && !seen.has(timer.id) ? timer.id : nextId();
-    seen.add(id);
-    return { ...timer, id };
-  });
+  // Every record needs a unique numeric id before copies are made from it.
+  let [timers, nextTimerId] = withUniqueIds(sanitizeList(parsed.timers, sanitizeTimer));
+  let [notes, nextNoteId] = withUniqueIds(sanitizeList(parsed.notes, sanitizeNote));
+  let [todos] = withUniqueIds(sanitizeList(parsed.todos, sanitizeTodo));
 
   if (version < 2) {
     // v1 -> v2: a timer used to show every day, so it becomes one independent
@@ -76,19 +116,26 @@ function migrateState(parsed, today) {
     // (what the user sees right now doesn't change); the other days get fresh
     // copies, the same as the "Copy to days" action makes.
     timers = timers.flatMap((timer) =>
-      DAYS.map((day) => (day === today ? { ...timer, day } : copyTimerTo(timer, day, nextId())))
+      DAYS.map((day) => (day === today ? { ...timer, day } : copyTimerTo(timer, day, nextTimerId())))
     );
   }
 
-  // Current-version data with a missing/invalid day (hand-edited, partially
-  // written) shows up today rather than vanishing.
-  timers = timers.map((timer) => (isDayKey(timer.day) ? timer : { ...timer, day: today }));
+  if (version < 3) {
+    // v2 -> v3: a note used to show every day. Like timers, it becomes one note
+    // per weekday, so each day's view still lists exactly what it did before.
+    // Today's copy keeps the original id. There were no todos yet.
+    notes = notes.flatMap((note) =>
+      DAYS.map((day) => (day === today ? { ...note, day } : { ...note, id: nextNoteId(), day }))
+    );
+    todos = [];
+  }
 
   return {
     ...parsed,
     version: Math.max(version, STATE_VERSION),
-    timers,
-    notes: Array.isArray(parsed.notes) ? parsed.notes : [],
+    timers: onValidDay(timers, today),
+    notes: onValidDay(notes, today),
+    todos: onValidDay(todos, today),
     embeds: Array.isArray(parsed.embeds) ? parsed.embeds : [],
   };
 }
@@ -223,7 +270,8 @@ function reducer(state, action) {
 
     case "addNote": {
       const note = {
-        id: new Date().getTime(),
+        id: idGenerator(state.notes)(),
+        day: isDayKey(payload.day) ? payload.day : getTodayKey(),
         content: payload.content,
       };
       updatedState = { ...state, notes: [note, ...state.notes] };
@@ -236,6 +284,66 @@ function reducer(state, action) {
         notes: state.notes.filter(
           (note) => note.id !== payload.id
         ),
+      };
+      break;
+    }
+
+    case "addTodo": {
+      const text = typeof payload.text === "string" ? payload.text.trim() : "";
+      if (!text) {
+        updatedState = state;
+        break;
+      }
+      const todo = {
+        id: idGenerator(state.todos)(),
+        day: isDayKey(payload.day) ? payload.day : getTodayKey(),
+        text,
+        doneOn: null,
+      };
+      // Appended: a checklist reads top to bottom in the order it was written.
+      updatedState = { ...state, todos: [...state.todos, todo] };
+      break;
+    }
+
+    case "updateTodo": {
+      // Blank text would leave an invisible item, so it keeps the old text.
+      const text = typeof payload.text === "string" ? payload.text.trim() : "";
+      updatedState = {
+        ...state,
+        todos: state.todos.map((todo) => {
+          if (todo.id !== payload.id) return todo;
+          return {
+            ...todo,
+            ...(text ? { text } : {}),
+            ...("doneOn" in payload ? { doneOn: isDateKey(payload.doneOn) ? payload.doneOn : null } : {}),
+          };
+        }),
+      };
+      break;
+    }
+
+    case "copyTodo": {
+      const source = state.todos.find((todo) => todo.id === payload.id);
+      if (!source) {
+        updatedState = state;
+        break;
+      }
+      // Copies start not done; days that already have the same todo are skipped.
+      const nextId = idGenerator(state.todos);
+      const copies = DAYS.filter(
+        (day) =>
+          payload.days.includes(day) &&
+          day !== source.day &&
+          !hasIdenticalTodo(state.todos, source, day)
+      ).map((day) => ({ ...source, id: nextId(), day, doneOn: null }));
+      updatedState = { ...state, todos: [...state.todos, ...copies] };
+      break;
+    }
+
+    case "deleteTodo": {
+      updatedState = {
+        ...state,
+        todos: state.todos.filter((todo) => todo.id !== payload.id),
       };
       break;
     }
@@ -328,13 +436,35 @@ function StoreProvider({ children }) {
     });
   };
 
-  const addNote = (content) => {
+  const addNote = (content, day = getTodayKey()) => {
     dispatch({
       type: "addNote",
       payload: {
         content,
+        day,
       },
     });
+  };
+
+  const addTodo = (text, day = getTodayKey()) => {
+    dispatch({ type: "addTodo", payload: { text, day } });
+  };
+
+  // `doneOn` is the date the todo is ticked for (see isTodoDone), or null.
+  const setTodoDone = (id, doneOn) => {
+    dispatch({ type: "updateTodo", payload: { id, doneOn } });
+  };
+
+  const renameTodo = (id, text) => {
+    dispatch({ type: "updateTodo", payload: { id, text } });
+  };
+
+  const copyTodo = (id, days) => {
+    dispatch({ type: "copyTodo", payload: { id, days } });
+  };
+
+  const deleteTodo = (id) => {
+    dispatch({ type: "deleteTodo", payload: { id } });
   };
 
   const deleteNote = (id) => {
@@ -371,6 +501,12 @@ function StoreProvider({ children }) {
         notes: state.notes,
         addNote,
         deleteNote,
+        todos: state.todos,
+        addTodo,
+        setTodoDone,
+        renameTodo,
+        copyTodo,
+        deleteTodo,
         embeds: state.embeds,
         addEmbed,
         deleteEmbed,

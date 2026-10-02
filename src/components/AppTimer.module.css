@@ -1,7 +1,0 @@
-.hide_on_mobile {}
-
-@media screen and (max-width: 500px) {
-  .hide_on_mobile {
-    display: none;
-  }
-}

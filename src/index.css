@@ -6,5 +6,7 @@ body {
 #root {
   display: flex;
   flex: 1 1 auto;
-  height: 100%;
+  /* min-, not height: the page grows with its content, which the sticky day
+     picker needs (it can only stick within its parent's box). */
+  min-height: 100%;
 }

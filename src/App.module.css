@@ -10,11 +10,29 @@
   min-width: 0;
 }
 
-.appwrapper {
+.header {
   padding-top: calc(28px + env(safe-area-inset-top));
+  padding-bottom: 4px;
+}
+
+.appwrapper {
+  padding-top: 16px;
   flex-grow: 1;
   display: flex;
   flex-direction: row;
+  align-content: flex-start;
+}
+
+.section_gap {
+  margin-top: 40px;
+}
+
+.hide_on_mobile {}
+
+@media screen and (max-width: 500px) {
+  .hide_on_mobile {
+    display: none;
+  }
 }
 
 /* Must stay equal to half of App.jsx's xs horizontal gutter, so the Row's negative
@@ -25,7 +43,12 @@
     padding-right: max(16px, env(safe-area-inset-right));
   }
 
-  .appwrapper {
+  .header {
     padding-top: calc(16px + env(safe-area-inset-top));
+    padding-bottom: 0;
+  }
+
+  .appwrapper {
+    padding-top: 8px;
   }
 }
