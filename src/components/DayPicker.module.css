@@ -1,5 +1,12 @@
-.day_picker {
-  margin-bottom: 10px;
+/* Stays in view while scrolling, so it's always clear which day the timers,
+   todos and notes below belong to. The black backing hides content scrolling
+   underneath; on notched phones it sticks just below the status bar. */
+.bar {
+  position: sticky;
+  top: env(safe-area-inset-top);
+  z-index: 10;
+  padding: 8px 0 12px;
+  background: #000;
 }
 
 .day {

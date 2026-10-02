@@ -1,7 +1,6 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen, waitFor, within } from '@testing-library/react';
 import AppTimer from './AppTimer';
-import { StoreProvider } from '../redux/store';
+import { renderWithDay, pickDay } from '../test-utils/renderWithDay';
 
 const KEY = import.meta.env.VITE_STORAGEKEY;
 
@@ -20,13 +19,7 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 function renderAppTimer() {
-  const user = userEvent.setup();
-  render(
-    <StoreProvider>
-      <AppTimer />
-    </StoreProvider>
-  );
-  return user;
+  return renderWithDay(<AppTimer />);
 }
 
 function savedTimers() {
@@ -48,10 +41,6 @@ async function copyTo(user, dayNames) {
     await user.click(within(dialog).getByRole('checkbox', { name }));
   }
   await user.click(within(dialog).getByRole('button', { name: 'Copy' }));
-}
-
-async function pickDay(user, name) {
-  await user.click(screen.getByRole('radio', { name }).closest('label'));
 }
 
 test('copies a timer to the chosen days as independent timers with fresh state', async () => {
