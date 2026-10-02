@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import AppHabits from './AppHabits';
 import { renderWithDay, pickDay } from '../test-utils/renderWithDay';
 
@@ -43,6 +43,46 @@ test('adds a daily habit with a target, shown as that many empty slots', async (
   expect(await screen.findByText('Water')).toBeInTheDocument();
   expect(within(section('Daily')).getAllByRole('button', { name: /^Water \d of 3$/ })).toHaveLength(3);
   expect(saved()).toMatchObject([{ kind: 'daily', name: 'Water', target: 3, log: {} }]);
+});
+
+test('the add form starts empty every time, also after editing a habit', async () => {
+  seed([smoke]);
+  const user = renderWithDay(<AppHabits />);
+  // Matched by title text: under jsdom a closed modal's close animation never
+  // finishes, so it lingers next to the open one with a clashing title id.
+  const open = async (button, title) => {
+    await user.click(screen.getByRole('button', { name: button }));
+    return waitFor(() => {
+      const dialog = screen.getAllByRole('dialog').find((d) => within(d).queryByText(title));
+      expect(dialog).toBeDefined();
+      return dialog;
+    });
+  };
+
+  let dialog = await open('Add daily habit', 'New daily habit');
+  await user.type(within(dialog).getByLabelText('Name'), 'Water');
+  const target = within(dialog).getByLabelText('Times per day');
+  await user.clear(target);
+  await user.type(target, '8');
+  await user.click(within(dialog).getByRole('button', { name: 'Add' }));
+  await screen.findByText('Water');
+
+  dialog = await open('Add daily habit', 'New daily habit');
+  expect(within(dialog).getByLabelText('Name')).toHaveValue('');
+  expect(within(dialog).getByLabelText('Times per day')).toHaveValue('5');
+  await user.type(within(dialog).getByLabelText('Name'), 'half-typed');
+  await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+  dialog = await open('Add daily habit', 'New daily habit');
+  expect(within(dialog).getByLabelText('Name')).toHaveValue('');
+  await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+  dialog = await open('Edit No smoking', 'Edit "No smoking"');
+  expect(within(dialog).getByLabelText('Name')).toHaveValue('No smoking');
+  await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+  dialog = await open('Add routines habit', 'New routine');
+  expect(within(dialog).getByLabelText('Name')).toHaveValue('');
 });
 
 test('tapping a slot fills up to it; tapping the last filled one empties it', async () => {
