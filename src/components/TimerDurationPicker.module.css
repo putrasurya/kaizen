@@ -1,0 +1,93 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.readout {
+  text-align: center;
+  line-height: 1;
+  padding: 4px 0;
+}
+
+.part + .part {
+  margin-left: 12px;
+}
+
+.number {
+  font-size: 48px;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.unit {
+  margin-left: 4px;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Chips in a 4-column grid: two even rows that fit a phone without scrolling.
+   The doubled class outranks antd's joined-button-bar border and radius rules. */
+.presets.presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.presets.presets :global(.ant-radio-button-wrapper) {
+  padding-inline: 0;
+  text-align: center;
+  border-inline-start-width: 1px;
+  border-radius: 8px;
+}
+
+.presets.presets :global(.ant-radio-button-wrapper::before) {
+  display: none;
+}
+
+.custom {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.stepper.stepper {
+  width: 100%;
+}
+
+/* Square +/- targets at least as wide as the 40px-tall large control. */
+.stepper.stepper :global(.ant-input-number-action) {
+  min-width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stepper.stepper :global(.ant-input-number-input) {
+  min-width: 0;
+}
+
+.sr_only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

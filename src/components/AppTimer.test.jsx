@@ -32,7 +32,7 @@ test('renders one TimerItem per added timer and sums totalHour across them', asy
 
   await addTimer(user, 'Deep Work');
   expect(await screen.findByText('Deep Work')).toBeInTheDocument();
-  // Default TimerAdd selection (hours1=1H, hours2=0H, minutes=0) = 1h.
+  // Default TimerAdd duration = 1h.
   expect(screen.getByText('1.0 Times left')).toBeInTheDocument();
 
   await addTimer(user, 'Reading');
