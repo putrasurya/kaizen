@@ -1,23 +1,25 @@
 # Kaizen
 
-A modern productivity application that combines timer management with note-taking functionality to help you practice continuous improvement in your daily workflow.
+A productivity app that pairs weekly timers with quick notes, to help you practice continuous improvement in your daily workflow.
 
-![Kaizen Demo](./screenshot.png)
+![Kaizen screenshot](./screenshot.png)
 
 ## ✨ Features
 
-- **Timer Management**: Create, manage, and track multiple timers for different tasks
-- **Note Taking**: Quick and easy note management with add/delete functionality
-- **Time Tracking**: Monitor time spent and remaining time for better productivity
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
-- **Modern UI**: Clean interface built with Ant Design components
-- **Sound Notifications**: Audio alerts to keep you focused
+- **Timers per weekday**: Each timer belongs to a day of the week. Switch days with the day picker; today is selected by default and a dot marks days with a running timer.
+- **Copy to days**: Copy a timer's settings to other weekdays in one step (days that already have an identical timer are skipped).
+- **Reps**: Each time a timer reaches zero, it buzzes and counts a rep, so you can track how many rounds you've done.
+- **Time left**: See the total time remaining across the selected day's timers, plus how many hours are left in today.
+- **Notes**: Add and delete quick reminders alongside your timers.
+- **Saved locally**: Timers and notes are stored in your browser's localStorage, with automatic migration when the data format changes.
+- **Installable PWA**: Works offline and can be installed on desktop or mobile, with a prompt when a new version is available.
+- **Responsive**: Larger touch targets and a stacked layout on phones.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js (^20.19.0 or >=22.12.0)
+- Node.js ^22.22.2, ^24.15.0, or >=26.0.0 (required by the test environment, jsdom)
 - npm (>=8.0.0)
 
 ### Installation
@@ -43,37 +45,42 @@ Open [http://localhost:5173](http://localhost:5173) to view the app in your brow
 ## 🛠️ Available Scripts
 
 ### `npm start`
-Runs the app in development mode with hot module reloading enabled.
+Runs the app in development mode with hot module reloading.
 
 ### `npm test`
 Runs the test suite once (CI-friendly). Use `npx vitest` for interactive watch mode.
 
 ### `npm run build`
-Builds the app for production to the `build` folder. The build is optimized and ready for deployment.
+Builds the app for production into the `build` folder, including the PWA service worker.
 
 ## 🏗️ Technology Stack
 
 - **Frontend**: React 19, JSX
 - **UI Framework**: Ant Design 6
 - **Styling**: CSS Modules, CSS-in-JS (via Ant Design)
-- **State Management**: React Context API
-- **Build Tool**: Vite
+- **State Management**: React Context with `useReducer`, persisted to localStorage
+- **Build Tool**: Vite, with `vite-plugin-pwa`
 - **Testing**: Vitest, React Testing Library
 
 ## 📁 Project Structure
 
 ```
 src/
-├── components/          # Reusable UI components
-│   ├── AppTimer.jsx    # Timer management component
-│   ├── AppNote.jsx     # Note-taking component
-│   ├── TimerAdd.jsx    # Add new timer form
-│   ├── TimerItem.jsx   # Individual timer display
+├── components/
+│   ├── AppTimer.jsx         # Timer list, day picker and time-left summary
+│   ├── AppNote.jsx          # Note-taking panel
+│   ├── TimerDayPicker.jsx   # Weekday tabs
+│   ├── TimerAdd.jsx         # Add-timer form
+│   ├── TimerItem.jsx        # A single timer with its controls
+│   ├── TimerCountdown.jsx   # Countdown logic and alarm
+│   ├── TimerCopy.jsx        # Copy a timer to other days
+│   ├── AppUpdatePrompt.jsx  # "New version available" prompt
 │   └── ...
 ├── redux/
-│   └── store.jsx       # Application state management
-├── App.jsx             # Main application component
-└── index.jsx           # Application entry point
+│   └── store.jsx            # Context store, reducer, persistence and migrations
+├── utilities/               # Day and time helpers
+├── App.jsx                  # Main layout
+└── index.jsx                # Entry point
 ```
 
 ## 🐳 Docker Support
