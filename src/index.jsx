@@ -7,6 +7,7 @@ import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { StoreProvider } from "./redux/store";
+import AppUpdatePrompt from "./components/AppUpdatePrompt";
 
 // Modal.confirm() (used by TimerItem's delete/reset confirmations) is a static
 // method that renders into its own root outside the component tree, so it
@@ -21,6 +22,7 @@ const app = (
       <StoreProvider>
         <App />
       </StoreProvider>
+      <AppUpdatePrompt />
     </ConfigProvider>
   </React.StrictMode>
 );

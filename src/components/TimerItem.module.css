@@ -16,3 +16,10 @@
   color: #2aabff !important;
   margin: 0 !important;
 }
+
+.controls_mobile {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  margin-top: 4px;
+}

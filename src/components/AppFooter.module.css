@@ -2,6 +2,7 @@
   text-align: center;
   padding: 10px 15px;
   padding-top: 35px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
   color: rgba(255,255,255,0.5);
   background: #000000;
   font-size: .8rem;
