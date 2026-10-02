@@ -3,11 +3,13 @@ import { PlusOutlined } from "@ant-design/icons";
 import { useContext, useState } from "react";
 import { useForm } from "antd/lib/form/Form";
 import { store } from "../redux/store";
+import { DAY_NAMES } from "../utilities/day-helper";
 import styles from './TimerAdd.module.css';
 
 const { Item } = Form;
 
-function AddTimer() {
+// `day` is the weekday being viewed; new timers belong to it.
+function AddTimer({ day }) {
   const { addTimer } = useContext(store);
   const [theHour, setTheHour] = useState(1);
   const [theMinute, setTheMinute] = useState(0);
@@ -47,7 +49,7 @@ function AddTimer() {
   ];
 
   const addingTimer = (values) => {
-    addTimer(values.title, values.hours1 + values.hours2 + values.minutes1 + values.minutes2);
+    addTimer(values.title, values.hours1 + values.hours2 + values.minutes1 + values.minutes2, 0, false, day);
     setShow(false);
     form.resetFields();
   };
@@ -73,7 +75,7 @@ function AddTimer() {
       <Modal
         open={show}
         width={417}
-        title="Add Timer"
+        title={day ? `Add Timer for ${DAY_NAMES[day]}` : "Add Timer"}
         onCancel={() => {
           setShow(false);
           form.resetFields();

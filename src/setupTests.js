@@ -79,6 +79,9 @@ beforeEach(() => {
 
 afterEach(() => {
   document.getElementById('buzzbuzz')?.remove();
+  // StoreProvider loads (and migrates) persisted state on mount, so each test
+  // starts from empty storage rather than whatever the previous test saved.
+  window.localStorage.clear();
   // Modal.confirm()/Modal.method() (used by TimerItem's delete/reset confirmations)
   // mount into their own DOM node appended to document.body, outside the React root
   // that Testing Library's automatic cleanup unmounts — so they leak into later tests
