@@ -1,5 +1,5 @@
 import { CloseOutlined, PlusOutlined } from "@ant-design/icons";
-import { Col, Row, Form, Button, List, Typography, Modal, Input } from "antd";
+import { Col, Row, Form, Button, Grid, List, Typography, Modal, Input } from "antd";
 import { useForm } from "antd/lib/form/Form";
 import { useContext, useState } from "react";
 import { store } from "../redux/store";
@@ -11,6 +11,9 @@ function AppNote() {
   const { notes, addNote, deleteNote } = useContext(store);
   const [form] = useForm();
   const [show, setShow] = useState(false);
+  // Phones: bigger touch targets, and a large (16px) input so iOS doesn't zoom
+  // the page when it's focused.
+  const isMobile = !!Grid.useBreakpoint().xs;
 
   const handleAdd = (values) => {
     addNote(values.content);
@@ -34,17 +37,23 @@ function AppNote() {
             >
               Take Note
             </Title>
-            <Button icon={<PlusOutlined />} onClick={() => setShow(true)} />
+            <Button
+              icon={<PlusOutlined />}
+              size={isMobile ? "large" : "middle"}
+              onClick={() => setShow(true)}
+            />
           </Row>
         }
         dataSource={notes}
         renderItem={(item) => (
           <List.Item>
             <Row wrap={false} style={{ width: "100%" }}>
-              <Col flex="auto">{item.content}</Col>
+              <Col flex="auto" style={{ minWidth: 0, overflowWrap: "anywhere" }}>
+                {item.content}
+              </Col>
               <Col flex="none">
                 <Button
-                  size="small"
+                  size={isMobile ? "middle" : "small"}
                   type="link"
                   danger
                   icon={<CloseOutlined />}
@@ -61,7 +70,7 @@ function AppNote() {
         onOk={() => form.submit()}
         onCancel={() => setShow(false)}
       >
-        <Form form={form} onFinish={handleAdd}>
+        <Form form={form} size={isMobile ? "large" : undefined} onFinish={handleAdd}>
           <Item name="content" required={true}>
             <Input placeholder="eg. do something at 3am" />
           </Item>

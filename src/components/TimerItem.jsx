@@ -5,7 +5,7 @@ import {
   PlayCircleFilled,
   UndoOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Col, Row, Space, Modal, Typography } from "antd";
+import { Button, Card, Col, Grid, Row, Space, Modal, Typography } from "antd";
 import TimerCountdown from "./TimerCountdown";
 import { store } from "../redux/store";
 import styles from "./TimerItem.module.css";
@@ -14,6 +14,10 @@ import TimerItemReps from "./TimerItemReps";
 function TimerItem({ timer }) {
   const { deleteTimer, updateSecondsSpent } = useContext(store);
   const [play, setPlay] = useState(false);
+  // Phones: title on its own line, countdown + controls spread across the next
+  // one, with larger buttons for touch.
+  const isMobile = !!Grid.useBreakpoint().xs;
+  const buttonSize = isMobile ? "large" : "middle";
 
   const buttonIcon = () => {
     return play ? <PauseCircleFilled /> : <PlayCircleFilled />;
@@ -39,13 +43,17 @@ function TimerItem({ timer }) {
 
   return (
     <Card className={play?styles.timer_play:styles.timer_pause } size="small">
-      <Row justify="space-between" align="middle" wrap={false}>
-        <Col flex="auto">
+      <Row justify="space-between" align="middle" wrap={isMobile}>
+        <Col flex={isMobile ? "1 1 100%" : "auto"}>
           <Typography.Text ellipsis style={{paddingRight: 15, display: "block"}}>{timer.title}</Typography.Text>
           <TimerItemReps timer={timer} />
         </Col>
-        <Col flex="none">
-          <Space align="center" size="middle">
+        <Col flex={isMobile ? "1 1 100%" : "none"}>
+          <Space
+            align="center"
+            size="middle"
+            className={isMobile ? styles.controls_mobile : undefined}
+          >
             <TimerCountdown
               key={timer.id}
               id={timer.id}
@@ -60,18 +68,21 @@ function TimerItem({ timer }) {
                 type={buttonType()}
                 icon={buttonIcon()}
                 shape="circle"
+                size={buttonSize}
                 disabled={timer.seconds === timer.secondsSpent}
                 onClick={() => setPlay(!play)}
               />
               <div>
                 <Button
                   type="link"
+                  size={buttonSize}
                   disabled={play}
                   icon={<UndoOutlined />}
                   onClick={() => handleReset(timer)}
                 />
                 <Button
                   type="link"
+                  size={buttonSize}
                   danger
                   disabled={play}
                   icon={<DeleteOutlined />}

@@ -11,3 +11,12 @@
     display: inline-block;
     margin-left: 0.2rem;
 }
+
+/* Touch screens have no hover, so the reset link would be unreachable. */
+@media (hover: none) {
+    .item_reps .reset_reps {
+        display: inline-block;
+        margin-left: 0.2rem;
+        padding: 4px 6px;
+    }
+}

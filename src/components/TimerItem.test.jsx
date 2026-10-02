@@ -3,6 +3,7 @@ import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TimerItem from './TimerItem';
 import { store, StoreProvider } from '../redux/store';
+import { mockViewportWidth } from '../test-utils/mockViewport';
 
 // antd 6's Modal.confirm renders its title text in two places (an accessible
 // header `.ant-modal-title` and the visual `.ant-modal-confirm-title`), so a plain
@@ -102,4 +103,30 @@ test('confirming reset zeroes secondsSpent', async () => {
 
   // 1h (3600s) with nothing spent shows as "1.00" on the countdown.
   expect(await screen.findByText('1.00')).toBeInTheDocument();
+});
+
+describe('responsive layout', () => {
+  let restoreViewport;
+  afterEach(() => restoreViewport?.());
+
+  test('uses large touch-sized controls on a phone-width viewport', async () => {
+    restoreViewport = mockViewportWidth(375);
+    await renderTimerItem();
+
+    for (const name of ['play-circle', 'undo', 'delete']) {
+      expect(screen.getByRole('button', { name })).toHaveClass('ant-btn-lg');
+    }
+    // Title and controls are allowed to wrap onto separate lines.
+    expect(screen.getByText('Focus on Works').closest('.ant-row')).not.toHaveClass('ant-row-no-wrap');
+  });
+
+  test('keeps the compact single-line desktop layout on wide viewports', async () => {
+    restoreViewport = mockViewportWidth(1280);
+    await renderTimerItem();
+
+    for (const name of ['play-circle', 'undo', 'delete']) {
+      expect(screen.getByRole('button', { name })).not.toHaveClass('ant-btn-lg');
+    }
+    expect(screen.getByText('Focus on Works').closest('.ant-row')).toHaveClass('ant-row-no-wrap');
+  });
 });

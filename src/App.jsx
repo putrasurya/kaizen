@@ -7,7 +7,7 @@ import AppFooter from "./components/AppFooter";
 function App() {
   return (
     <div className={styles.container}>
-      <Row className={styles.appwrapper} gutter={[50, 50]}>
+      <Row className={styles.appwrapper} gutter={[{ xs: 32, sm: 50 }, 50]}>
         <Col span={24} xs={{ order: 2 }} lg={{ order: 1, span: 12 }} xl={12}>
           <AppNote />
         </Col>

@@ -1,16 +1,31 @@
 .container {
   max-width: 1280px;
   margin: 0 auto;
-  padding-left: 25px;
-  padding-right: 25px;
+  /* env() is 0 outside notched/standalone displays, so desktop keeps 25px. */
+  padding-left: max(25px, env(safe-area-inset-left));
+  padding-right: max(25px, env(safe-area-inset-right));
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+  min-width: 0;
 }
 
 .appwrapper {
-  padding-top: 28px;
+  padding-top: calc(28px + env(safe-area-inset-top));
   flex-grow: 1;
   display: flex;
   flex-direction: row;
+}
+
+/* Must stay equal to half of App.jsx's xs horizontal gutter, so the Row's negative
+   margin is absorbed by this padding and nothing overflows horizontally. */
+@media screen and (max-width: 575px) {
+  .container {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  .appwrapper {
+    padding-top: calc(16px + env(safe-area-inset-top));
+  }
 }
