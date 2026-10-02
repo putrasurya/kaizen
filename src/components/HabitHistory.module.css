@@ -1,0 +1,132 @@
+.caption {
+  display: block;
+  margin-bottom: 16px;
+}
+
+/* Week label, 7 day cells, week score. */
+.heatmap {
+  display: grid;
+  grid-template-columns: 52px repeat(7, minmax(0, 1fr)) 48px;
+  gap: 5px;
+  align-items: center;
+}
+
+.heatRow {
+  display: contents;
+}
+
+.dayHead {
+  text-align: center;
+  font-size: 12px;
+}
+
+.weekLabel {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.cell {
+  aspect-ratio: 1;
+  max-height: 32px;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.score {
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Diverging bars: the top half holds positive balances, the bottom negative. */
+.bars {
+  display: flex;
+  gap: 6px;
+  height: 200px;
+  padding-bottom: 36px;
+}
+
+.barCol {
+  flex: 1;
+  max-width: 64px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.half {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.half:first-child {
+  align-items: flex-end;
+}
+
+.zero {
+  width: calc(100% + 6px);
+  height: 1px;
+  flex: none;
+}
+
+.barUp,
+.barDown {
+  width: 70%;
+  max-width: 24px;
+  display: block;
+}
+
+.barUp {
+  border-radius: 4px 4px 0 0;
+}
+
+.barDown {
+  border-radius: 0 0 4px 4px;
+}
+
+.barValue,
+.barLabel {
+  position: absolute;
+  font-size: 11px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.barValue {
+  bottom: -18px;
+}
+
+.barLabel {
+  bottom: -34px;
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+/* 8 weeks of dates don't fit under bars on a phone; show every other one. */
+@media screen and (max-width: 575px) {
+  .barCol:nth-child(even) .barLabel {
+    visibility: hidden;
+  }
+}

@@ -2,6 +2,7 @@ import { Col, Row, Tooltip, Typography } from "antd";
 import AppNote from "./components/AppNote";
 import AppTimer from "./components/AppTimer";
 import AppTodo from "./components/AppTodo";
+import AppHabits from "./components/AppHabits";
 import DayPicker from "./components/DayPicker";
 import styles from './App.module.css';
 import AppFooter from "./components/AppFooter";
@@ -25,12 +26,15 @@ function App() {
         </Row>
         {/* One picker for the whole page: timers, todos and notes all follow it. */}
         <DayPicker />
-        {/* Source order is the phone order (timers, todos, notes in one
-            column). From lg up, todos + notes move to the left column and
-            timers to the right, via the lg order props. */}
+        {/* Source order is the phone order (timers, habits, todos, notes in
+            one column). From lg up, todos + notes move to the left column and
+            timers + habits to the right, via the lg order props. */}
         <Row className={styles.appwrapper} gutter={[{ xs: 32, sm: 50 }, 50]} data-testid="sections">
           <Col span={24} lg={{ order: 2, span: 12 }}>
             <AppTimer />
+            <div className={styles.section_gap}>
+              <AppHabits />
+            </div>
           </Col>
           <Col span={24} lg={{ order: 1, span: 12 }}>
             <AppTodo />
