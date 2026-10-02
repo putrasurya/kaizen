@@ -1,0 +1,55 @@
+.day_picker {
+  margin-bottom: 10px;
+}
+
+.day {
+  position: relative;
+}
+
+.today {
+  position: relative;
+  font-weight: 600;
+}
+
+.today::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -3px;
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+  transform: translateX(-50%);
+  background: #2aabff;
+}
+
+.running_dot {
+  position: absolute;
+  top: -1px;
+  right: -6px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #2aabff;
+}
+
+.sr_only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Phones: seven equal segments have to fit 360px, so trim the side padding
+   antd puts around each label (the text would otherwise ellipsize). The
+   doubled class outranks antd's size-variant selector. */
+@media screen and (max-width: 575px) {
+  .day_picker.day_picker :global(.ant-segmented-item-label) {
+    padding-inline: 2px;
+  }
+}

@@ -1,5 +1,6 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
+  CopyOutlined,
   DeleteOutlined,
   PauseCircleFilled,
   PlayCircleFilled,
@@ -10,14 +11,21 @@ import TimerCountdown from "./TimerCountdown";
 import { store } from "../redux/store";
 import styles from "./TimerItem.module.css";
 import TimerItemReps from "./TimerItemReps";
+import TimerCopy from "./TimerCopy";
 
-function TimerItem({ timer }) {
+function TimerItem({ timer, onPlayChange }) {
   const { deleteTimer, updateSecondsSpent } = useContext(store);
   const [play, setPlay] = useState(false);
+  const [showCopy, setShowCopy] = useState(false);
   // Phones: title on its own line, countdown + controls spread across the next
   // one, with larger buttons for touch.
   const isMobile = !!Grid.useBreakpoint().xs;
   const buttonSize = isMobile ? "large" : "middle";
+
+  // Lets the list know which timers are running (e.g. to mark their day).
+  useEffect(() => {
+    onPlayChange?.(timer.id, play);
+  }, [play]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const buttonIcon = () => {
     return play ? <PauseCircleFilled /> : <PlayCircleFilled />;
@@ -76,6 +84,13 @@ function TimerItem({ timer }) {
                 <Button
                   type="link"
                   size={buttonSize}
+                  icon={<CopyOutlined />}
+                  title="Copy to other days"
+                  onClick={() => setShowCopy(true)}
+                />
+                <Button
+                  type="link"
+                  size={buttonSize}
                   disabled={play}
                   icon={<UndoOutlined />}
                   onClick={() => handleReset(timer)}
@@ -93,6 +108,7 @@ function TimerItem({ timer }) {
           </Space>
         </Col>
       </Row>
+      <TimerCopy timer={timer} open={showCopy} onClose={() => setShowCopy(false)} />
     </Card>
   );
 }

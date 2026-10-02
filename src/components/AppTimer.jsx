@@ -1,18 +1,56 @@
 import { Col, Divider, Row, Space, Tooltip, Typography } from "antd";
-import { useContext } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import TimerAdd from "./TimerAdd";
 import TimerItem from "./TimerItem";
+import TimerDayPicker from "./TimerDayPicker";
 import { store } from "../redux/store";
+import { getTodayKey } from "../utilities/day-helper";
 import styles from "./AppTimer.module.css";
 
 const { Title, Text } = Typography;
 
 function AppTimer() {
   const { timers } = useContext(store);
+  // Always opens on today; the picked day is deliberately not persisted.
+  const [today, setToday] = useState(getTodayKey);
+  const [selectedDay, setSelectedDay] = useState(today);
+  const [runningIds, setRunningIds] = useState(() => new Set());
+
+  // Jump back to today when the date rolls over, whether the app stayed open
+  // past midnight or comes back from the background.
+  useEffect(() => {
+    const checkDay = () => {
+      const now = getTodayKey();
+      if (now === today) return;
+      setToday(now);
+      setSelectedDay(now);
+    };
+    const interval = setInterval(checkDay, 60 * 1000);
+    document.addEventListener("visibilitychange", checkDay);
+    window.addEventListener("focus", checkDay);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", checkDay);
+      window.removeEventListener("focus", checkDay);
+    };
+  }, [today]);
+
+  const handlePlayChange = useCallback((id, play) => {
+    setRunningIds((ids) => {
+      if (ids.has(id) === play) return ids;
+      const next = new Set(ids);
+      if (play) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const dayTimers = timers.filter((timer) => timer.day === selectedDay);
+  const runningDays = timers.filter((timer) => runningIds.has(timer.id)).map((timer) => timer.day);
 
   const totalHour = () => {
-    const secsInitial = timers.reduce((acc, cur) => acc + cur.seconds, 0);
-    const secsSpent = timers.reduce((acc, cur) => acc + cur.secondsSpent, 0);
+    const secsInitial = dayTimers.reduce((acc, cur) => acc + cur.seconds, 0);
+    const secsSpent = dayTimers.reduce((acc, cur) => acc + cur.secondsSpent, 0);
     const secs = secsInitial - secsSpent;
     const hours = Math.floor(secs / 3600);
     const minutes = Math.floor((secs % 3600) / 60);
@@ -47,9 +85,20 @@ function AppTimer() {
           </Space>
         </Col>
       </Row>
-      <TimerAdd />
+      <TimerDayPicker
+        value={selectedDay}
+        today={today}
+        runningDays={runningDays}
+        onChange={setSelectedDay}
+      />
+      <TimerAdd day={selectedDay} />
+      {/* Every timer stays mounted and other days' are only hidden, so a
+          running countdown (and its alarm) keeps going while another day is
+          being viewed. */}
       {timers.map((timer) => (
-        <TimerItem key={timer.id} timer={timer} />
+        <div key={timer.id} hidden={timer.day !== selectedDay}>
+          <TimerItem timer={timer} onPlayChange={handlePlayChange} />
+        </div>
       ))}
     </>
   );
