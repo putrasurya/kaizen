@@ -229,13 +229,13 @@ describe('loadState (persistence and migration)', () => {
   });
 
   test('missing storage gives an empty current-version state', () => {
-    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], embeds: [] });
+    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], embeds: [] });
   });
 
   test('unparseable storage does not crash and is backed up instead of lost', () => {
     window.localStorage.setItem(KEY, '{"timers": [oops');
 
-    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], embeds: [] });
+    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], embeds: [] });
     expect(window.localStorage.getItem(`${KEY}.backup`)).toBe('{"timers": [oops');
   });
 
@@ -283,7 +283,7 @@ describe('v3: notes per day and todos', () => {
 
     const state = loadState(KEY, 'fri');
 
-    expect(state.version).toBe(3);
+    expect(state.version).toBe(STATE_VERSION);
     expect(state.timers).toEqual(v2.timers);
     expect(state.todos).toEqual([]);
     expect(state.notes).toHaveLength(14);
@@ -304,12 +304,12 @@ describe('v3: notes per day and todos', () => {
 
     const state = loadState(KEY, 'tue');
 
-    expect(state.version).toBe(3);
+    expect(state.version).toBe(STATE_VERSION);
     expect(state.timers).toHaveLength(7);
     expect(state.notes).toHaveLength(7);
     expect(state.notes.map((n) => n.day).sort()).toEqual([...DAYS].sort());
     expect(state.todos).toEqual([]);
-    expect(readPersistedState().version).toBe(3);
+    expect(readPersistedState().version).toBe(STATE_VERSION);
   });
 
   test('runs only once: deleted note copies and todos are not reset on reload', () => {
@@ -370,5 +370,121 @@ describe('isTodoDone', () => {
     ['mon', null, '2026-10-02', false],
   ])('%s todo done on %s, today %s -> %s', (day, doneOn, today, expected) => {
     expect(isTodoDone({ day, doneOn }, today)).toBe(expected);
+  });
+});
+
+describe('habits', () => {
+  const KEY = import.meta.env.VITE_STORAGEKEY;
+
+  function HabitHarness() {
+    const ctx = useContext(store);
+    const [daily, routine] = [ctx.habits.find((h) => h.kind === 'daily'), ctx.habits.find((h) => h.kind === 'routine')];
+    return (
+      <div>
+        <pre data-testid="habits">{JSON.stringify(ctx.habits)}</pre>
+        <button onClick={() => ctx.addHabit('daily', '  Pray  ', 5)}>addDaily</button>
+        <button onClick={() => ctx.addHabit('routine', 'No smoking')}>addRoutine</button>
+        <button onClick={() => ctx.addHabit('daily', '   ', 5)}>addBlank</button>
+        <button onClick={() => ctx.setDailyCount(daily.id, '2026-10-02', 3)}>fill3</button>
+        <button onClick={() => ctx.setDailyCount(daily.id, '2026-10-02', 9)}>fill9</button>
+        <button onClick={() => ctx.setDailyCount(daily.id, '2026-10-02', 0)}>empty</button>
+        <button onClick={() => ctx.editHabit(daily.id, 'Salat', 3)}>edit</button>
+        <button onClick={() => ctx.logRoutine(routine.id, 'minus', 1, '2026-10-02')}>minus</button>
+        <button onClick={() => ctx.logRoutine(routine.id, 'minus', -1, '2026-10-02')}>undoMinus</button>
+        <button onClick={() => ctx.logRoutine(routine.id, 'plus', 1, '2026-10-02')}>plus</button>
+        <button onClick={() => ctx.deleteHabit(routine.id)}>deleteRoutine</button>
+      </div>
+    );
+  }
+
+  function setup() {
+    const user = userEvent.setup();
+    render(<StoreProvider><HabitHarness /></StoreProvider>);
+    const habits = () => JSON.parse(screen.getByTestId('habits').textContent);
+    const click = (name) => user.click(screen.getByText(name));
+    return { habits, click };
+  }
+
+  test('adds trimmed daily and routine habits; blank names are ignored', async () => {
+    const { habits, click } = setup();
+    await click('addDaily');
+    await click('addRoutine');
+    await click('addBlank');
+
+    expect(habits()).toMatchObject([
+      { kind: 'daily', name: 'Pray', target: 5, log: {}, createdOn: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
+      { kind: 'routine', name: 'No smoking', log: {} },
+    ]);
+    expect(habits()[1]).not.toHaveProperty('target');
+    expect(readPersistedState().habits).toHaveLength(2);
+  });
+
+  test('daily counts are capped at the target and empty days leave the log', async () => {
+    const { habits, click } = setup();
+    await click('addDaily');
+
+    await click('fill3');
+    expect(habits()[0].log).toEqual({ '2026-10-02': 3 });
+    await click('fill9');
+    expect(habits()[0].log).toEqual({ '2026-10-02': 5 });
+    await click('empty');
+    expect(habits()[0].log).toEqual({});
+  });
+
+  test('editing renames and changes the target', async () => {
+    const { habits, click } = setup();
+    await click('addDaily');
+    await click('edit');
+    expect(habits()[0]).toMatchObject({ name: 'Salat', target: 3 });
+  });
+
+  test('routine taps count per day, undo never goes below zero, and delete removes it', async () => {
+    const { habits, click } = setup();
+    await click('addRoutine');
+
+    await click('minus');
+    await click('minus');
+    await click('plus');
+    expect(habits()[0].log).toEqual({ '2026-10-02': { plus: 1, minus: 2 } });
+
+    await click('undoMinus');
+    await click('undoMinus');
+    await click('undoMinus');
+    expect(habits()[0].log).toEqual({ '2026-10-02': { plus: 1, minus: 0 } });
+
+    await click('deleteRoutine');
+    expect(habits()).toEqual([]);
+  });
+
+  test('v3 -> v4 adds an empty habit list and leaves everything else alone', () => {
+    const v3 = { version: 3, timers: [], notes: [{ id: 1, day: 'mon', content: 'x' }], todos: [], embeds: [] };
+    window.localStorage.setItem(KEY, JSON.stringify(v3));
+
+    const state = loadState(KEY, 'fri');
+    expect(state.version).toBe(4);
+    expect(state.habits).toEqual([]);
+    expect(state.notes).toEqual(v3.notes);
+    expect(readPersistedState().version).toBe(4);
+  });
+
+  test('malformed habits are repaired or dropped, with unique ids', () => {
+    window.localStorage.setItem(KEY, JSON.stringify({
+      version: 4, timers: [], notes: [], todos: [], embeds: [],
+      habits: [
+        null,
+        { id: 1, kind: 'weekly', name: 'x' },
+        { id: 1, kind: 'daily', name: '  ' },
+        { id: 2, kind: 'daily', name: 'Pray', target: 50, log: { '2026-10-02': 3, bad: 2, '2026-10-01': -1, '2026-09-30': 1.5 } },
+        { id: 2, kind: 'routine', name: 'Urge', target: 4, log: { '2026-10-02': { plus: 2, minus: 'x' }, '2026-10-01': { plus: 0, minus: 0 } } },
+      ],
+    }));
+
+    const { habits } = loadState(KEY, 'fri');
+    expect(habits).toHaveLength(2);
+    // No createdOn: the first logged day stands in.
+    expect(habits[0]).toEqual({ id: 2, kind: 'daily', name: 'Pray', createdOn: '2026-10-02', target: 20, log: { '2026-10-02': 3 } });
+    expect(habits[1]).toMatchObject({ kind: 'routine', name: 'Urge', log: { '2026-10-02': { plus: 2, minus: 0 } } });
+    expect(habits[1]).not.toHaveProperty('target');
+    expect(habits[1].id).not.toBe(2);
   });
 });

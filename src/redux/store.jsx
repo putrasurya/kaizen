@@ -1,13 +1,15 @@
 import { createContext, useReducer } from "react";
-import { DAYS, getTodayKey, isDateKey, isDayKey, weekDateOf } from "../utilities/day-helper";
+import { DAYS, getTodayKey, isDateKey, isDayKey, toDateKey, weekDateOf } from "../utilities/day-helper";
+import { isHabitKind, toTarget } from "../utilities/habit-helper";
 
 // Bump when the persisted shape changes, and add a step to migrateState().
 // 1 (implicit, no `version` field): timers had no `day`.
 // 2: every timer belongs to exactly one weekday via `day`.
 // 3: notes belong to a weekday too, and there is a per-day `todos` list.
-export const STATE_VERSION = 3;
+// 4: a `habits` list (daily slots and +/- routines, see habit-helper).
+export const STATE_VERSION = 4;
 
-const emptyState = () => ({ version: STATE_VERSION, timers: [], notes: [], todos: [], embeds: [] });
+const emptyState = () => ({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], embeds: [] });
 
 // Ids used to be plain Date.now() values, which collide when several records
 // are created in one action (copies, migration). Keep them numeric and
@@ -102,6 +104,51 @@ function sanitizeTodo(raw) {
   return { id: raw.id, day: raw.day, text: raw.text, doneOn: isDateKey(raw.doneOn) ? raw.doneOn : null };
 }
 
+const toWhole = (value) => (Number.isInteger(value) && value > 0 ? value : 0);
+
+// Keeps only dated entries with something in them, so the log stays small.
+function sanitizeLog(raw, sanitizeEntry) {
+  const log = {};
+  if (!isRecord(raw)) return log;
+  for (const [date, entry] of Object.entries(raw)) {
+    if (!isDateKey(date)) continue;
+    const clean = sanitizeEntry(entry);
+    if (clean) log[date] = clean;
+  }
+  return log;
+}
+
+const dailyEntry = (entry) => toWhole(entry) || null;
+function routineEntry(entry) {
+  if (!isRecord(entry)) return null;
+  const plus = toWhole(entry.plus);
+  const minus = toWhole(entry.minus);
+  return plus || minus ? { plus, minus } : null;
+}
+
+// A habit needs a kind and a name to be shown; anything else is repaired.
+// `createdOn` starts its history, so earlier weeks don't read as missed; if
+// it's lost, the first logged day stands in.
+function sanitizeHabit(raw) {
+  if (!isRecord(raw) || !isHabitKind(raw.kind) || typeof raw.name !== "string" || !raw.name.trim()) return null;
+  const log = sanitizeLog(raw.log, raw.kind === "daily" ? dailyEntry : routineEntry);
+  const createdOn = isDateKey(raw.createdOn) ? raw.createdOn : Object.keys(log).sort()[0] ?? toDateKey();
+  const base = { id: raw.id, kind: raw.kind, name: raw.name, createdOn };
+  return raw.kind === "daily" ? { ...base, target: toTarget(raw.target), log } : { ...base, log };
+}
+
+const updateHabit = (state, id, change) => ({
+  ...state,
+  habits: state.habits.map((habit) => (habit.id === id ? change(habit) : habit)),
+});
+
+function withLogEntry(habit, date, entry) {
+  const log = { ...habit.log };
+  if (entry) log[date] = entry;
+  else delete log[date];
+  return { ...habit, log };
+}
+
 function migrateState(parsed, today) {
   const version = Number.isFinite(parsed.version) ? parsed.version : 1;
 
@@ -109,6 +156,8 @@ function migrateState(parsed, today) {
   let [timers, nextTimerId] = withUniqueIds(sanitizeList(parsed.timers, sanitizeTimer));
   let [notes, nextNoteId] = withUniqueIds(sanitizeList(parsed.notes, sanitizeNote));
   let [todos] = withUniqueIds(sanitizeList(parsed.todos, sanitizeTodo));
+  // v3 -> v4 only adds the list, so older data simply has none yet.
+  const [habits] = withUniqueIds(sanitizeList(parsed.habits, sanitizeHabit));
 
   if (version < 2) {
     // v1 -> v2: a timer used to show every day, so it becomes one independent
@@ -136,6 +185,7 @@ function migrateState(parsed, today) {
     timers: onValidDay(timers, today),
     notes: onValidDay(notes, today),
     todos: onValidDay(todos, today),
+    habits,
     embeds: Array.isArray(parsed.embeds) ? parsed.embeds : [],
   };
 }
@@ -348,6 +398,69 @@ function reducer(state, action) {
       break;
     }
 
+    case "addHabit": {
+      const name = typeof payload.name === "string" ? payload.name.trim() : "";
+      if (!name || !isHabitKind(payload.kind)) {
+        updatedState = state;
+        break;
+      }
+      const habit = {
+        id: idGenerator(state.habits)(),
+        kind: payload.kind,
+        name,
+        createdOn: toDateKey(),
+        ...(payload.kind === "daily" ? { target: toTarget(payload.target) } : {}),
+        log: {},
+      };
+      updatedState = { ...state, habits: [...state.habits, habit] };
+      break;
+    }
+
+    case "updateHabit": {
+      // Blank names are ignored, like todos; the target only applies to daily.
+      const name = typeof payload.name === "string" ? payload.name.trim() : "";
+      updatedState = updateHabit(state, payload.id, (habit) => ({
+        ...habit,
+        ...(name ? { name } : {}),
+        ...(habit.kind === "daily" && payload.target != null ? { target: toTarget(payload.target) } : {}),
+      }));
+      break;
+    }
+
+    case "deleteHabit": {
+      updatedState = { ...state, habits: state.habits.filter((habit) => habit.id !== payload.id) };
+      break;
+    }
+
+    case "setDailyCount": {
+      if (!isDateKey(payload.date)) {
+        updatedState = state;
+        break;
+      }
+      updatedState = updateHabit(state, payload.id, (habit) => {
+        if (habit.kind !== "daily") return habit;
+        const count = Math.min(toWhole(payload.count), habit.target);
+        return withLogEntry(habit, payload.date, count || null);
+      });
+      break;
+    }
+
+    case "logRoutine": {
+      // `delta` is +1 for a tap and -1 to undo one; a count never goes below 0.
+      const field = payload.field;
+      if (!isDateKey(payload.date) || (field !== "plus" && field !== "minus")) {
+        updatedState = state;
+        break;
+      }
+      updatedState = updateHabit(state, payload.id, (habit) => {
+        if (habit.kind !== "routine") return habit;
+        const entry = { plus: 0, minus: 0, ...habit.log[payload.date] };
+        entry[field] = Math.max(0, entry[field] + (payload.delta < 0 ? -1 : 1));
+        return withLogEntry(habit, payload.date, entry.plus || entry.minus ? entry : null);
+      });
+      break;
+    }
+
     case "addEmbed": {
       updatedState = {
         ...state,
@@ -474,6 +587,28 @@ function StoreProvider({ children }) {
     });
   };
 
+  const addHabit = (kind, name, target) => {
+    dispatch({ type: "addHabit", payload: { kind, name, target } });
+  };
+
+  const editHabit = (id, name, target) => {
+    dispatch({ type: "updateHabit", payload: { id, name, target } });
+  };
+
+  const deleteHabit = (id) => {
+    dispatch({ type: "deleteHabit", payload: { id } });
+  };
+
+  // Slots filled on `date` ("YYYY-MM-DD") for a daily habit.
+  const setDailyCount = (id, date, count) => {
+    dispatch({ type: "setDailyCount", payload: { id, date, count } });
+  };
+
+  // One + or - tap on a routine, logged on `date` (today by default).
+  const logRoutine = (id, field, delta = 1, date = toDateKey()) => {
+    dispatch({ type: "logRoutine", payload: { id, field, delta, date } });
+  };
+
   const addEmbed = (link) => {
     dispatch({
       type: "addEmbed",
@@ -507,6 +642,12 @@ function StoreProvider({ children }) {
         renameTodo,
         copyTodo,
         deleteTodo,
+        habits: state.habits,
+        addHabit,
+        editHabit,
+        deleteHabit,
+        setDailyCount,
+        logRoutine,
         embeds: state.embeds,
         addEmbed,
         deleteEmbed,
