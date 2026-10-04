@@ -10,11 +10,12 @@ A productivity app that pairs weekly timers with quick notes, to help you practi
 - **Copy to days**: Copy a timer's settings to other weekdays in one step (days that already have an identical timer are skipped).
 - **Reps**: Each time a timer reaches zero, it buzzes and counts a rep, so you can track how many rounds you've done.
 - **Time left**: See the total time remaining across the selected day's timers, plus how many hours are left in today.
-- **Notes**: Add and delete quick reminders alongside your timers.
+- **Reminders**: Quick notes for a weekday that show up again every week on that day.
+- **Journal**: A diary entry per date, saved as you type. Each entry shows how your habits went that day, and "Past entries" lists older ones, newest first.
 - **Daily habits**: Habits with a set number per day (pray 5×, 8 glasses of water). Tap circles to fill them; earlier days this week can be filled in from the day picker.
 - **Routines**: A +/− balance for habits like resisting an urge. A slip (−) is a debt that good taps (+) pay back; the balance starts clear every Monday, with an undo after each tap.
 - **Habit history**: A weekly heatmap for daily habits and a weekly owed/ahead bar chart for routines, starting from the week each habit was created.
-- **Saved locally**: Timers and notes are stored in your browser's localStorage, with automatic migration when the data format changes.
+- **Saved locally**: Timers, notes, habits and journal entries are stored in your browser's localStorage, with automatic migration when the data format changes.
 - **Installable PWA**: Works offline and can be installed on desktop or mobile, with a prompt when a new version is available.
 - **Responsive**: Larger touch targets and a stacked layout on phones.
 

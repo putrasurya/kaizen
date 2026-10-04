@@ -229,13 +229,13 @@ describe('loadState (persistence and migration)', () => {
   });
 
   test('missing storage gives an empty current-version state', () => {
-    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], embeds: [] });
+    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], journal: {}, embeds: [] });
   });
 
   test('unparseable storage does not crash and is backed up instead of lost', () => {
     window.localStorage.setItem(KEY, '{"timers": [oops');
 
-    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], embeds: [] });
+    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], journal: {}, embeds: [] });
     expect(window.localStorage.getItem(`${KEY}.backup`)).toBe('{"timers": [oops');
   });
 
@@ -461,10 +461,10 @@ describe('habits', () => {
     window.localStorage.setItem(KEY, JSON.stringify(v3));
 
     const state = loadState(KEY, 'fri');
-    expect(state.version).toBe(4);
+    expect(state.version).toBe(STATE_VERSION);
     expect(state.habits).toEqual([]);
     expect(state.notes).toEqual(v3.notes);
-    expect(readPersistedState().version).toBe(4);
+    expect(readPersistedState().version).toBe(STATE_VERSION);
   });
 
   test('malformed habits are repaired or dropped, with unique ids', () => {
@@ -486,5 +486,48 @@ describe('habits', () => {
     expect(habits[1]).toMatchObject({ kind: 'routine', name: 'Urge', log: { '2026-10-02': { plus: 2, minus: 0 } } });
     expect(habits[1]).not.toHaveProperty('target');
     expect(habits[1].id).not.toBe(2);
+  });
+});
+
+describe('journal', () => {
+  const KEY = import.meta.env.VITE_STORAGEKEY;
+
+  function JournalHarness() {
+    const ctx = useContext(store);
+    return (
+      <div>
+        <pre data-testid="journal">{JSON.stringify(ctx.journal)}</pre>
+        <button onClick={() => ctx.setJournalEntry('2026-10-02', 'Dear diary')}>write</button>
+        <button onClick={() => ctx.setJournalEntry('2026-10-02', '   ')}>blank</button>
+        <button onClick={() => ctx.setJournalEntry('Friday', 'x')}>badDate</button>
+      </div>
+    );
+  }
+
+  test('writes, ignores bad dates, and removes blank entries', async () => {
+    const user = userEvent.setup();
+    render(<StoreProvider><JournalHarness /></StoreProvider>);
+    const journal = () => JSON.parse(screen.getByTestId('journal').textContent);
+
+    await user.click(screen.getByText('write'));
+    expect(journal()).toEqual({ '2026-10-02': 'Dear diary' });
+    expect(readPersistedState().journal).toEqual({ '2026-10-02': 'Dear diary' });
+
+    await user.click(screen.getByText('badDate'));
+    expect(journal()).toEqual({ '2026-10-02': 'Dear diary' });
+
+    await user.click(screen.getByText('blank'));
+    expect(journal()).toEqual({});
+  });
+
+  test('v4 -> v5 adds an empty journal; malformed entries are dropped', () => {
+    window.localStorage.setItem(KEY, JSON.stringify({ version: 4, timers: [], notes: [], todos: [], habits: [], embeds: [] }));
+    expect(loadState(KEY, 'fri')).toMatchObject({ version: 5, journal: {} });
+
+    window.localStorage.setItem(KEY, JSON.stringify({
+      version: 5, timers: [], notes: [], todos: [], habits: [], embeds: [],
+      journal: { '2026-10-02': 'kept', '2026-10-01': '  ', yesterday: 'bad key', '2026-09-30': 42 },
+    }));
+    expect(loadState(KEY, 'fri').journal).toEqual({ '2026-10-02': 'kept' });
   });
 });

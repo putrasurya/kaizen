@@ -72,3 +72,33 @@ export function shortDate(dateKey) {
   const [year, month, date] = dateKey.split("-").map(Number);
   return new Date(year, month - 1, date).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
+
+// What each habit looked like on one date, for showing beside a journal entry.
+// Only habits that existed by then are included.
+export function daySummary(habits, dateKey) {
+  return habits
+    .filter((habit) => !habit.createdOn || habit.createdOn <= dateKey)
+    .map((habit) => {
+      if (habit.kind === "daily") {
+        const count = dailyCount(habit, dateKey);
+        return { id: habit.id, name: habit.name, text: `${count}/${habit.target}`, done: count >= habit.target };
+      }
+      const { plus = 0, minus = 0 } = habit.log[dateKey] ?? {};
+      const text = plus || minus ? [plus && `+${plus}`, minus && `−${minus}`].filter(Boolean).join(" ") : "no taps";
+      // Flagged only when slips outweighed good taps: one slip on a good day
+      // shouldn't colour the whole day as a failure.
+      return { id: habit.id, name: habit.name, text, owed: minus > plus };
+    });
+}
+
+// "Sunday, Oct 4" (or with the year when it isn't this year).
+export function longDate(dateKey, todayKey) {
+  const [year, month, date] = dateKey.split("-").map(Number);
+  const sameYear = !todayKey || todayKey.slice(0, 4) === dateKey.slice(0, 4);
+  return new Date(year, month - 1, date).toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+}
