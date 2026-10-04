@@ -20,7 +20,7 @@ describe("App", () => {
 
     expect(screen.getByText(/Kaizen/i)).toBeInTheDocument();
     expect(screen.getByRole('radiogroup', { name: 'Day of the week' })).toBeInTheDocument();
-    expect(screen.getByText(/Take Note/i)).toBeInTheDocument();
+    expect(screen.getByText('Reminders')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Todo' })).toBeInTheDocument();
     expect(screen.getByText(/Add Timer/i)).toBeInTheDocument();
     expect(screen.getByText(/Putra Surya/i)).toBeInTheDocument();
@@ -84,19 +84,21 @@ describe("App layout order", () => {
 
   // The single phone column follows source order (antd's lg order classes only
   // apply from 992px up), so the DOM order is the phone order.
-  test('on a phone the order is day picker, Timers, Todo, Notes', () => {
+  test('on a phone the order is day picker, Timers, Todo, Journal, Reminders', () => {
     restoreViewport = mockViewportWidth(360);
     renderApp();
 
     const picker = screen.getByRole('radiogroup', { name: 'Day of the week' });
     const timers = screen.getByRole('region', { name: 'Timers' });
     const todos = screen.getByRole('region', { name: 'Todo' });
-    const notes = screen.getByText('Take Note');
+    const journal = screen.getByRole('region', { name: 'Journal' });
+    const notes = screen.getByText('Reminders');
     const follows = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
     expect(follows(picker, timers)).toBe(true);
     expect(follows(timers, todos)).toBe(true);
-    expect(follows(todos, notes)).toBe(true);
+    expect(follows(todos, journal)).toBe(true);
+    expect(follows(journal, notes)).toBe(true);
 
     // No column reorders below lg.
     const columns = [...screen.getByTestId('sections').children];
@@ -105,7 +107,7 @@ describe("App layout order", () => {
     }
   });
 
-  test('from lg up, todos + notes form the left column and timers the right', () => {
+  test('from lg up, todos + journal + reminders form the left column and timers the right', () => {
     restoreViewport = mockViewportWidth(1280);
     renderApp();
 
@@ -113,7 +115,8 @@ describe("App layout order", () => {
     expect(within(timersCol).getByRole('region', { name: 'Timers' })).toBeInTheDocument();
     expect(timersCol).toHaveClass('ant-col-lg-order-2', 'ant-col-lg-12');
     expect(within(listsCol).getByRole('region', { name: 'Todo' })).toBeInTheDocument();
-    expect(within(listsCol).getByText('Take Note')).toBeInTheDocument();
+    expect(within(listsCol).getByRole('region', { name: 'Journal' })).toBeInTheDocument();
+    expect(within(listsCol).getByText('Reminders')).toBeInTheDocument();
     expect(listsCol).toHaveClass('ant-col-lg-order-1', 'ant-col-lg-12');
   });
 });

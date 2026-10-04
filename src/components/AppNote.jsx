@@ -40,7 +40,7 @@ function AppNote() {
               style={{ fontWeight: 300 }}
               className="no-margin-important"
             >
-              Take Note
+              Reminders
             </Title>
             <Button
               icon={<PlusOutlined />}

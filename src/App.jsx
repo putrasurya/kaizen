@@ -3,6 +3,7 @@ import AppNote from "./components/AppNote";
 import AppTimer from "./components/AppTimer";
 import AppTodo from "./components/AppTodo";
 import AppHabits from "./components/AppHabits";
+import AppJournal from "./components/AppJournal";
 import DayPicker from "./components/DayPicker";
 import styles from './App.module.css';
 import AppFooter from "./components/AppFooter";
@@ -24,11 +25,12 @@ function App() {
             <Text>{hourLeftForToday}h/24h</Text>
           </Tooltip>
         </Row>
-        {/* One picker for the whole page: timers, todos and notes all follow it. */}
+        {/* One picker for the whole page: every section follows it. */}
         <DayPicker />
-        {/* Source order is the phone order (timers, habits, todos, notes in
-            one column). From lg up, todos + notes move to the left column and
-            timers + habits to the right, via the lg order props. */}
+        {/* Source order is the phone order (timers, habits, todos, journal,
+            reminders in one column). From lg up, todos + journal + reminders
+            move to the left column and timers + habits to the right, via the
+            lg order props. */}
         <Row className={styles.appwrapper} gutter={[{ xs: 32, sm: 50 }, 50]} data-testid="sections">
           <Col span={24} lg={{ order: 2, span: 12 }}>
             <AppTimer />
@@ -38,6 +40,9 @@ function App() {
           </Col>
           <Col span={24} lg={{ order: 1, span: 12 }}>
             <AppTodo />
+            <div className={styles.section_gap}>
+              <AppJournal />
+            </div>
             <div className={styles.section_gap}>
               <AppNote />
             </div>

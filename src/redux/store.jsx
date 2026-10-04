@@ -7,9 +7,20 @@ import { isHabitKind, toTarget } from "../utilities/habit-helper";
 // 2: every timer belongs to exactly one weekday via `day`.
 // 3: notes belong to a weekday too, and there is a per-day `todos` list.
 // 4: a `habits` list (daily slots and +/- routines, see habit-helper).
-export const STATE_VERSION = 4;
+// 5: a `journal` of entries keyed by calendar date ("YYYY-MM-DD").
+export const STATE_VERSION = 5;
 
-const emptyState = () => ({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], embeds: [] });
+export const JOURNAL_MAX_LENGTH = 10000;
+
+const emptyState = () => ({
+  version: STATE_VERSION,
+  timers: [],
+  notes: [],
+  todos: [],
+  habits: [],
+  journal: {},
+  embeds: [],
+});
 
 // Ids used to be plain Date.now() values, which collide when several records
 // are created in one action (copies, migration). Keep them numeric and
@@ -149,6 +160,17 @@ function withLogEntry(habit, date, entry) {
   return { ...habit, log };
 }
 
+// Unlike notes (which repeat every week on their weekday), a journal entry
+// belongs to one calendar date. Blank entries are simply absent.
+function sanitizeJournal(raw) {
+  const journal = {};
+  if (!isRecord(raw)) return journal;
+  for (const [date, text] of Object.entries(raw)) {
+    if (isDateKey(date) && typeof text === "string" && text.trim()) journal[date] = text.slice(0, JOURNAL_MAX_LENGTH);
+  }
+  return journal;
+}
+
 function migrateState(parsed, today) {
   const version = Number.isFinite(parsed.version) ? parsed.version : 1;
 
@@ -186,6 +208,8 @@ function migrateState(parsed, today) {
     notes: onValidDay(notes, today),
     todos: onValidDay(todos, today),
     habits,
+    // v4 -> v5 only adds the journal, so older data simply has no entries.
+    journal: sanitizeJournal(parsed.journal),
     embeds: Array.isArray(parsed.embeds) ? parsed.embeds : [],
   };
 }
@@ -461,6 +485,19 @@ function reducer(state, action) {
       break;
     }
 
+    case "setJournalEntry": {
+      if (!isDateKey(payload.date)) {
+        updatedState = state;
+        break;
+      }
+      const text = typeof payload.text === "string" ? payload.text.slice(0, JOURNAL_MAX_LENGTH) : "";
+      const journal = { ...state.journal };
+      if (text.trim()) journal[payload.date] = text;
+      else delete journal[payload.date];
+      updatedState = { ...state, journal };
+      break;
+    }
+
     case "addEmbed": {
       updatedState = {
         ...state,
@@ -609,6 +646,11 @@ function StoreProvider({ children }) {
     dispatch({ type: "logRoutine", payload: { id, field, delta, date } });
   };
 
+  // Clearing the text removes the entry.
+  const setJournalEntry = (date, text) => {
+    dispatch({ type: "setJournalEntry", payload: { date, text } });
+  };
+
   const addEmbed = (link) => {
     dispatch({
       type: "addEmbed",
@@ -648,6 +690,8 @@ function StoreProvider({ children }) {
         deleteHabit,
         setDailyCount,
         logRoutine,
+        journal: state.journal,
+        setJournalEntry,
         embeds: state.embeds,
         addEmbed,
         deleteEmbed,

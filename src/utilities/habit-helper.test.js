@@ -6,6 +6,7 @@ import {
   routineWeek,
   toTarget,
   weekStartOf,
+  daySummary,
 } from './habit-helper';
 
 // 2026-10-02 is a Friday; its Monday-first week runs 2026-09-28 .. 2026-10-04.
@@ -64,4 +65,22 @@ test('toTarget keeps targets whole and within 1..20', () => {
   expect(toTarget(0)).toBe(1);
   expect(toTarget(99)).toBe(20);
   expect(toTarget('x')).toBe(1);
+});
+
+test('daySummary shows daily counts and routine taps for habits that existed that day', () => {
+  const habits = [
+    { id: 1, kind: 'daily', name: 'Pray', target: 5, createdOn: '2026-09-01', log: { '2026-10-02': 5 } },
+    { id: 2, kind: 'routine', name: 'Urge', createdOn: '2026-09-01', log: { '2026-10-02': { plus: 0, minus: 2 } } },
+    { id: 3, kind: 'daily', name: 'Later', target: 1, createdOn: '2026-10-03', log: {} },
+  ];
+  expect(daySummary(habits, '2026-10-02')).toEqual([
+    { id: 1, name: 'Pray', text: '5/5', done: true },
+    { id: 2, name: 'Urge', text: '−2', owed: true },
+  ]);
+});
+
+test('daySummary only flags a routine day when slips outnumber good taps', () => {
+  const urge = (log) => [{ id: 1, kind: 'routine', name: 'Urge', createdOn: '2026-09-01', log }];
+  expect(daySummary(urge({ '2026-10-02': { plus: 3, minus: 1 } }), '2026-10-02')[0]).toMatchObject({ text: '+3 −1', owed: false });
+  expect(daySummary(urge({}), '2026-10-02')[0]).toMatchObject({ text: 'no taps', owed: false });
 });
