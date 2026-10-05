@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import AppHabits from './AppHabits';
 import { renderWithDay, pickDay } from '../test-utils/renderWithDay';
 
@@ -129,7 +129,7 @@ test('a routine slip is a debt that + taps pay back, with undo', async () => {
 
   await user.click(screen.getByRole('button', { name: 'Undo +1' }));
   expect(balance()).toHaveTextContent('Clear');
-  expect(saved()[0].log).toEqual({ '2026-10-02': { plus: 2, minus: 2 } });
+  expect(saved()[0].log['2026-10-02']).toMatchObject({ plus: 2, minus: 2 });
 });
 
 test("last week's debt doesn't carry into this week", () => {
@@ -178,5 +178,80 @@ test('deleting asks first, then removes the habit and its history', async () => 
   await user.click(await screen.findByRole('button', { name: 'Delete' }));
 
   expect(screen.queryByText('Pray')).not.toBeInTheDocument();
-  expect(saved()).toEqual([{ ...smoke, createdOn: '2026-10-02' }]);
+  expect(saved()).toEqual([{ ...smoke, createdOn: '2026-10-02', auto: null }]);
+});
+
+describe('auto tap', () => {
+  // 10:00 on Friday 2026-10-02 (set in the top-level beforeEach).
+  const FRI_10 = new Date(2026, 9, 2, 10, 0).getTime();
+  const HOUR = 3600 * 1000;
+  const openDialog = async (user, button, title) => {
+    await user.click(screen.getByRole('button', { name: button }));
+    return waitFor(() => {
+      const dialog = screen.getAllByRole('dialog').find((d) => within(d).queryByText(title));
+      expect(dialog).toBeDefined();
+      return dialog;
+    });
+  };
+
+  test('turning it on in the form starts the clock; the row shows progress', async () => {
+    seed([smoke]);
+    const user = renderWithDay(<AppHabits />);
+
+    const dialog = await openDialog(user, 'Edit No smoking', 'Edit "No smoking"');
+    await user.click(within(dialog).getByRole('switch', { name: 'Auto tap' }));
+    const every = within(dialog).getByLabelText('Every (minutes)');
+    await user.clear(every);
+    await user.type(every, '30');
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+    expect(saved()[0].auto).toMatchObject({ direction: 'plus', everyMinutes: 30, maxPerDay: 8, since: FRI_10 });
+    expect(screen.getByTestId('auto-2')).toHaveTextContent('Auto +1 every 30 min · 0/8 today · next in 30 min');
+  });
+
+  test('counts time that passed while the app was closed, up to the daily max', () => {
+    seed([{ ...smoke, auto: { direction: 'plus', everyMinutes: 60, maxPerDay: 8, since: FRI_10 - 3 * HOUR, frozenThrough: '2026-10-01' } }]);
+    renderWithDay(<AppHabits />);
+
+    expect(screen.getByTestId('auto-2')).toHaveTextContent('3/8 today · next in 60 min');
+    expect(screen.getByTestId('balance-2')).toHaveTextContent('+3 ahead');
+  });
+
+  test('a slip restarts the clock, and undoing the slip gives the time back', async () => {
+    seed([{ ...smoke, auto: { direction: 'plus', everyMinutes: 60, maxPerDay: 8, since: FRI_10 - 2.5 * HOUR, frozenThrough: '2026-10-01' } }]);
+    const user = renderWithDay(<AppHabits />);
+    expect(screen.getByTestId('auto-2')).toHaveTextContent('2/8 today · next in 30 min');
+
+    await user.click(screen.getByRole('button', { name: 'Slipped on No smoking' }));
+    expect(screen.getByTestId('auto-2')).toHaveTextContent('2/8 today · next in 60 min');
+    expect(screen.getByTestId('balance-2')).toHaveTextContent('+1 ahead');
+
+    await user.click(screen.getByRole('button', { name: 'Undo −1' }));
+    expect(screen.getByTestId('auto-2')).toHaveTextContent('2/8 today · next in 30 min');
+  });
+
+  test('ticks while the app is open', async () => {
+    seed([{ ...smoke, auto: { direction: 'minus', everyMinutes: 90, maxPerDay: 2, since: FRI_10 - 80 * 60 * 1000, frozenThrough: '2026-10-01' } }]);
+    renderWithDay(<AppHabits />);
+    expect(screen.getByTestId('auto-2')).toHaveTextContent('Auto −1 every 1 h 30 min · 0/2 today · next in 10 min');
+
+    vi.setSystemTime(FRI_10 + 3 * HOUR);
+    act(() => window.dispatchEvent(new Event('focus')));
+    expect(screen.getByTestId('auto-2')).toHaveTextContent('2/2 today · max reached today');
+    expect(screen.getByTestId('balance-2')).toHaveTextContent('Owe 2');
+  });
+
+  test('turning it off keeps what was earned today', async () => {
+    seed([{ ...smoke, auto: { direction: 'plus', everyMinutes: 60, maxPerDay: 8, since: FRI_10 - 4 * HOUR, frozenThrough: '2026-10-01' } }]);
+    const user = renderWithDay(<AppHabits />);
+
+    const dialog = await openDialog(user, 'Edit No smoking', 'Edit "No smoking"');
+    expect(within(dialog).getByRole('switch', { name: 'Auto tap' })).toBeChecked();
+    await user.click(within(dialog).getByRole('switch', { name: 'Auto tap' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+    expect(screen.queryByTestId('auto-2')).not.toBeInTheDocument();
+    expect(screen.getByTestId('balance-2')).toHaveTextContent('+4 ahead');
+    expect(saved()[0]).toMatchObject({ auto: null, log: { '2026-10-02': { autoPlus: 4 } } });
+  });
 });

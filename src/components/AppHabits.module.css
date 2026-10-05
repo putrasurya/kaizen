@@ -131,3 +131,10 @@
     height: 36px;
   }
 }
+
+.auto {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}

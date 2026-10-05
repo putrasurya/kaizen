@@ -46,8 +46,8 @@ test('routineWeek sums only that week, and the balance starts clear next Monday'
       '2026-10-04': { plus: 1, minus: 0 },
     },
   };
-  expect(routineWeek(habit, '2026-09-28')).toEqual({ plus: 2, minus: 3, balance: -1 });
-  expect(routineWeek(habit, '2026-10-05')).toEqual({ plus: 0, minus: 0, balance: 0 });
+  expect(routineWeek(habit, '2026-09-28')).toEqual({ plus: 2, minus: 3, auto: 0, balance: -1 });
+  expect(routineWeek(habit, '2026-10-05')).toEqual({ plus: 0, minus: 0, auto: 0, balance: 0 });
 });
 
 test.each([

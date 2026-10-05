@@ -1,4 +1,4 @@
-import { BarChartOutlined, CloseOutlined, EditOutlined, MinusOutlined, PlusOutlined } from "@ant-design/icons";
+import { BarChartOutlined, ClockCircleOutlined, CloseOutlined, EditOutlined, MinusOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Grid, List, Popconfirm, Row, Typography, theme } from "antd";
 import { useContext, useEffect, useRef, useState } from "react";
 import { store } from "../redux/store";
@@ -12,6 +12,8 @@ import {
   routineWeek,
   weekStartOf,
 } from "../utilities/habit-helper";
+import { liveAuto } from "../utilities/auto-tap";
+import { useNow } from "../utilities/useNow";
 import HabitForm from "./HabitForm";
 import HabitHistory from "./HabitHistory";
 import styles from "./AppHabits.module.css";
@@ -91,13 +93,44 @@ function DailyHabit({ habit, actions }) {
   );
 }
 
+// "45 min", "2 h", "1 h 30 min"
+function formatMinutes(minutes) {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours} h ${rest} min` : `${hours} h`;
+}
+
+function formatNext(next, now) {
+  const minutes = Math.max(1, Math.ceil((next - now) / 60000));
+  if (minutes <= 60) return `next in ${minutes} min`;
+  return `next at ${new Date(next).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+// "Auto +1 every 1 h · 3/8 today · next in 12 min"
+function AutoStatus({ habit, now }) {
+  const { todayDate } = useDay();
+  const status = liveAuto(habit, todayDate, now);
+  if (!status) return null;
+  const sign = habit.auto.direction === "plus" ? "+1" : "−1";
+  const tail = status.next ? formatNext(status.next, now) : status.total >= status.max ? "max reached today" : null;
+
+  return (
+    <Text type="secondary" className={styles.auto} data-testid={`auto-${habit.id}`}>
+      <ClockCircleOutlined aria-hidden="true" /> Auto {sign} every {formatMinutes(habit.auto.everyMinutes)} ·{" "}
+      {status.total}/{status.max} today{tail ? ` · ${tail}` : ""}
+    </Text>
+  );
+}
+
 // −/+ around the name, and a marker that drifts left as debt builds up and
 // right once it's paid off. This week's balance; it starts clear each Monday.
 function RoutineHabit({ habit, actions, size }) {
   const { logRoutine } = useContext(store);
   const { todayDate } = useDay();
   const { token } = theme.useToken();
-  const { balance } = routineWeek(habit, weekStartOf(todayDate));
+  const now = useNow();
+  const { balance } = routineWeek(habit, weekStartOf(todayDate), now);
   const [last, setLast] = useState(null);
   const undoTimer = useRef();
 
@@ -155,6 +188,7 @@ function RoutineHabit({ habit, actions, size }) {
           <Text type="secondary">This week</Text>
         )}
       </Row>
+      <AutoStatus habit={habit} now={now} />
     </div>
   );
 }
@@ -214,8 +248,8 @@ function HabitSection({ kind }) {
         habit={form?.habit}
         open={!!form}
         size={isMobile ? "large" : undefined}
-        onSubmit={(name, target) =>
-          form?.habit ? editHabit(form.habit.id, name, target) : addHabit(kind, name, target)
+        onSubmit={(name, target, auto) =>
+          form?.habit ? editHabit(form.habit.id, name, target, auto) : addHabit(kind, name, target, auto)
         }
         onClose={() => setForm(null)}
       />
