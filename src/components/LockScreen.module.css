@@ -1,0 +1,46 @@
+/* Above antd's modals (z-index 1000+), so nothing opened earlier shows through. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: calc(24px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+
+.brand {
+  font-weight: 300 !important;
+  opacity: 0.6;
+}
+
+.icon {
+  font-size: 28px;
+  opacity: 0.8;
+}
+
+.title {
+  font-weight: 300 !important;
+  margin: 0 0 12px !important;
+}
+
+.message {
+  min-height: 22px;
+  text-align: center;
+}
+
+.forgot {
+  width: 100%;
+  max-width: 380px;
+}
+
+.forgotActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}

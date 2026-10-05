@@ -1,0 +1,26 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.agree {
+  align-items: flex-start;
+}
+
+.message {
+  display: block;
+  min-height: 22px;
+  text-align: center;
+}
+
+.notice {
+  margin-bottom: 16px;
+}

@@ -1,4 +1,6 @@
-import { Col, Row, Tooltip, Typography } from "antd";
+import { LockOutlined, UnlockOutlined } from "@ant-design/icons";
+import { Button, Col, Row, Space, Tooltip, Typography } from "antd";
+import { useState } from "react";
 import AppNote from "./components/AppNote";
 import AppTimer from "./components/AppTimer";
 import AppTodo from "./components/AppTodo";
@@ -8,22 +10,49 @@ import DayPicker from "./components/DayPicker";
 import styles from './App.module.css';
 import AppFooter from "./components/AppFooter";
 import { DayProvider } from "./redux/day";
+import { PrivacyProvider, usePrivacy } from "./redux/privacy";
+import LockScreen from "./components/LockScreen";
+import PrivacySettings from "./components/PrivacySettings";
 
 const { Title, Text } = Typography;
 
-function App() {
+function PrivacyButton() {
+  const { enabled } = usePrivacy();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button
+        type="text"
+        icon={enabled ? <LockOutlined /> : <UnlockOutlined />}
+        aria-label="Privacy lock"
+        title="Privacy lock"
+        onClick={() => setOpen(true)}
+      />
+      <PrivacySettings open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+function AppContent() {
   const hourLeftForToday = 24 - new Date().getHours();
+  const { locked, covered } = usePrivacy();
+  const hidden = locked || covered;
 
   return (
     <DayProvider>
-      <div className={styles.container}>
+      {/* Locked = covered by LockScreen, and unreachable by keyboard or screen
+          reader. Still mounted, so running timers keep going. */}
+      <div className={styles.container} inert={hidden} aria-hidden={hidden || undefined}>
         <Row justify="space-between" align="middle" className={styles.header}>
           <Title level={2} style={{ fontWeight: 300 }} className="no-margin-important">
             Kaizen
           </Title>
-          <Tooltip title="Represent times left from 24 hours of today" className={styles.hide_on_mobile}>
-            <Text>{hourLeftForToday}h/24h</Text>
-          </Tooltip>
+          <Space size={4} align="center">
+            <Tooltip title="Represent times left from 24 hours of today" className={styles.hide_on_mobile}>
+              <Text>{hourLeftForToday}h/24h</Text>
+            </Tooltip>
+            <PrivacyButton />
+          </Space>
         </Row>
         {/* One picker for the whole page: every section follows it. */}
         <DayPicker />
@@ -50,7 +79,16 @@ function App() {
         </Row>
         <AppFooter />
       </div>
+      <LockScreen />
     </DayProvider>
+  );
+}
+
+function App() {
+  return (
+    <PrivacyProvider>
+      <AppContent />
+    </PrivacyProvider>
   );
 }
 
