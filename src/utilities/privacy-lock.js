@@ -105,7 +105,7 @@ export function writeLock(lock) {
 
 // "Forgot PIN": everything Kaizen keeps on this device, gone.
 export function eraseAllData() {
-  for (const key of [appKey(), `${appKey()}.backup`, lockKey()]) {
+  for (const key of [appKey(), `${appKey()}.backup`, `${appKey()}.before-import`, `${appKey()}.last-export`, lockKey()]) {
     try {
       window.localStorage.removeItem(key);
     } catch {
