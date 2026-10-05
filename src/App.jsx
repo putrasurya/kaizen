@@ -1,6 +1,7 @@
-import { LockOutlined, UnlockOutlined } from "@ant-design/icons";
+import { LockOutlined, SaveOutlined, UnlockOutlined } from "@ant-design/icons";
 import { Button, Col, Row, Space, Tooltip, Typography } from "antd";
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { store } from "./redux/store";
 import AppNote from "./components/AppNote";
 import AppTimer from "./components/AppTimer";
 import AppTodo from "./components/AppTodo";
@@ -13,6 +14,7 @@ import { DayProvider } from "./redux/day";
 import { PrivacyProvider, usePrivacy } from "./redux/privacy";
 import LockScreen from "./components/LockScreen";
 import PrivacySettings from "./components/PrivacySettings";
+import BackupSettings from "./components/BackupSettings";
 
 const { Title, Text } = Typography;
 
@@ -36,13 +38,17 @@ function PrivacyButton() {
 function AppContent() {
   const hourLeftForToday = 24 - new Date().getHours();
   const { locked, covered } = usePrivacy();
+  const { generation } = useContext(store);
+  const [backupOpen, setBackupOpen] = useState(false);
   const hidden = locked || covered;
 
   return (
     <DayProvider>
       {/* Locked = covered by LockScreen, and unreachable by keyboard or screen
           reader. Still mounted, so running timers keep going. */}
-      <div className={styles.container} inert={hidden} aria-hidden={hidden || undefined}>
+      {/* Keyed by `generation`: restoring a backup rebuilds the page so every
+          section shows the restored data. */}
+      <div key={generation} className={styles.container} inert={hidden} aria-hidden={hidden || undefined}>
         <Row justify="space-between" align="middle" className={styles.header}>
           <Title level={2} style={{ fontWeight: 300 }} className="no-margin-important">
             Kaizen
@@ -51,6 +57,13 @@ function AppContent() {
             <Tooltip title="Represent times left from 24 hours of today" className={styles.hide_on_mobile}>
               <Text>{hourLeftForToday}h/24h</Text>
             </Tooltip>
+            <Button
+              type="text"
+              icon={<SaveOutlined />}
+              aria-label="Backup & restore"
+              title="Backup & restore"
+              onClick={() => setBackupOpen(true)}
+            />
             <PrivacyButton />
           </Space>
         </Row>
@@ -79,6 +92,8 @@ function AppContent() {
         </Row>
         <AppFooter />
       </div>
+      {/* Outside the keyed page, so it stays open (with its Undo) after a restore. */}
+      <BackupSettings open={backupOpen} onClose={() => setBackupOpen(false)} />
       <LockScreen />
     </DayProvider>
   );

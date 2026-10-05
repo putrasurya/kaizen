@@ -616,3 +616,21 @@ describe('routine auto tap', () => {
     expect(b.auto).toBeNull();
   });
 });
+
+describe('backup round trip', () => {
+  test('a backup restores to exactly the state it was made from', async () => {
+    const { backupFromState, stateFromBackup } = await import('./store');
+    const state = {
+      version: STATE_VERSION, timers: [{ id: 1, day: 'mon', title: 'Focus', seconds: 60, secondsSpent: 10, initial: 60, reps: 2 }],
+      notes: [{ id: 2, day: 'tue', content: 'n' }], todos: [{ id: 3, day: 'wed', text: 't', doneOn: '2026-09-30' }],
+      habits: [
+        { id: 4, kind: 'daily', name: 'Pray', createdOn: '2026-09-01', target: 5, log: { '2026-10-01': 4 } },
+        { id: 5, kind: 'routine', name: 'Urge', createdOn: '2026-09-01', log: { '2026-10-01': { plus: 1, minus: 0, plusAt: [1790000000000], autoPlus: 2 } },
+          auto: { direction: 'plus', everyMinutes: 60, maxPerDay: 8, since: 1789000000000, frozenThrough: '2026-09-30' } },
+      ],
+      journal: { '2026-10-01': 'Dear diary' }, embeds: [],
+    };
+    const file = JSON.stringify(backupFromState(state, new Date('2026-10-06T00:00:00Z')));
+    expect(stateFromBackup(file, 'tue').state).toEqual(state);
+  });
+});

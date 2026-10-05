@@ -1,4 +1,4 @@
-import { createContext, useReducer } from "react";
+import { createContext, useReducer, useState } from "react";
 import { DAYS, getTodayKey, isDateKey, isDayKey, toDateKey, weekDateOf } from "../utilities/day-helper";
 import { isHabitKind, toTarget } from "../utilities/habit-helper";
 import { toAutoSettings, withAutoSettings } from "../utilities/auto-tap";
@@ -280,6 +280,41 @@ export function loadState(storageKey = import.meta.env.VITE_STORAGEKEY, today = 
   // migration runs exactly once even if the user never changes anything.
   if (parsed.version !== state.version) persist(storageKey, state);
   return state;
+}
+
+// ---- Backup files -------------------------------------------------------
+// A backup is the whole app state wrapped with a marker, so a random JSON file
+// isn't mistaken for one. The privacy lock is not part of it: restoring a
+// backup never changes the PIN.
+export const BACKUP_FORMAT = 1;
+export const BACKUP_MAX_BYTES = 20 * 1024 * 1024;
+
+export class BackupError extends Error {}
+
+export function backupFromState(state, now = new Date()) {
+  return { app: "kaizen", format: BACKUP_FORMAT, exportedAt: now.toISOString(), data: state };
+}
+
+// Reads a backup file's text into app state, upgrading older backups the same
+// way older saved data is upgraded. Throws BackupError with a message that can
+// be shown as-is.
+export function stateFromBackup(text, today = getTodayKey()) {
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new BackupError("This file isn't a Kaizen backup (it couldn't be read).");
+  }
+  if (!isRecord(parsed) || parsed.app !== "kaizen" || !isRecord(parsed.data)) {
+    throw new BackupError("This file isn't a Kaizen backup.");
+  }
+  if (parsed.format > BACKUP_FORMAT || parsed.data.version > STATE_VERSION) {
+    throw new BackupError("This backup is from a newer version of Kaizen. Update the app and try again.");
+  }
+  return {
+    state: migrateState(parsed.data, today),
+    exportedAt: typeof parsed.exportedAt === "string" ? parsed.exportedAt : null,
+  };
 }
 
 function reducer(state, action) {
@@ -564,6 +599,11 @@ function reducer(state, action) {
       break;
     }
 
+    case "replaceAll": {
+      updatedState = payload.state;
+      break;
+    }
+
     default: {
       updatedState = state;
     }
@@ -581,6 +621,9 @@ function StoreProvider({ children }) {
   // Loaded on mount (not at import time) so the migration and corrupt-data
   // handling run against what's in storage when the app actually starts.
   const [state, dispatch] = useReducer(reducer, undefined, () => loadState());
+  // Bumped when everything is replaced (restoring a backup), so the page can
+  // rebuild and drop any copies sections keep while editing.
+  const [generation, setGeneration] = useState(0);
 
   const addTimer = (title, seconds, secondsSpent = 0, play = false, day = getTodayKey()) => {
     dispatch({
@@ -700,6 +743,12 @@ function StoreProvider({ children }) {
     dispatch({ type: "setJournalEntry", payload: { date, text } });
   };
 
+  // Restoring a backup: everything is replaced at once.
+  const replaceAll = (next) => {
+    dispatch({ type: "replaceAll", payload: { state: next } });
+    setGeneration((n) => n + 1);
+  };
+
   const addEmbed = (link) => {
     dispatch({
       type: "addEmbed",
@@ -740,6 +789,9 @@ function StoreProvider({ children }) {
         setDailyCount,
         logRoutine,
         journal: state.journal,
+        fullState: state,
+        generation,
+        replaceAll,
         setJournalEntry,
         embeds: state.embeds,
         addEmbed,
