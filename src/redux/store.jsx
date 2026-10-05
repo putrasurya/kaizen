@@ -1,6 +1,7 @@
 import { createContext, useReducer } from "react";
 import { DAYS, getTodayKey, isDateKey, isDayKey, toDateKey, weekDateOf } from "../utilities/day-helper";
 import { isHabitKind, toTarget } from "../utilities/habit-helper";
+import { toAutoSettings, withAutoSettings } from "../utilities/auto-tap";
 
 // Bump when the persisted shape changes, and add a step to migrateState().
 // 1 (implicit, no `version` field): timers had no `day`.
@@ -8,7 +9,8 @@ import { isHabitKind, toTarget } from "../utilities/habit-helper";
 // 3: notes belong to a weekday too, and there is a per-day `todos` list.
 // 4: a `habits` list (daily slots and +/- routines, see habit-helper).
 // 5: a `journal` of entries keyed by calendar date ("YYYY-MM-DD").
-export const STATE_VERSION = 5;
+// 6: routines can auto tap (`auto`), and save when each manual tap happened.
+export const STATE_VERSION = 6;
 
 export const JOURNAL_MAX_LENGTH = 10000;
 
@@ -130,11 +132,34 @@ function sanitizeLog(raw, sanitizeEntry) {
 }
 
 const dailyEntry = (entry) => toWhole(entry) || null;
+// Tap times restart the auto-tap clock. A day only needs the recent ones.
+const MAX_TAP_TIMES = 200;
+const toTimes = (list) =>
+  (Array.isArray(list) ? list : []).filter((t) => Number.isFinite(t) && t > 0).slice(-MAX_TAP_TIMES);
+
+const isEmptyRoutineEntry = (entry) => !(entry.plus || entry.minus || entry.autoPlus || entry.autoMinus);
+
 function routineEntry(entry) {
   if (!isRecord(entry)) return null;
-  const plus = toWhole(entry.plus);
-  const minus = toWhole(entry.minus);
-  return plus || minus ? { plus, minus } : null;
+  const clean = { plus: toWhole(entry.plus), minus: toWhole(entry.minus) };
+  const plusAt = toTimes(entry.plusAt);
+  const minusAt = toTimes(entry.minusAt);
+  if (plusAt.length) clean.plusAt = plusAt;
+  if (minusAt.length) clean.minusAt = minusAt;
+  if (toWhole(entry.autoPlus)) clean.autoPlus = toWhole(entry.autoPlus);
+  if (toWhole(entry.autoMinus)) clean.autoMinus = toWhole(entry.autoMinus);
+  return isEmptyRoutineEntry(clean) ? null : clean;
+}
+
+// Auto-tap settings plus when they started; anything unusable means "off".
+function sanitizeAuto(raw) {
+  const settings = toAutoSettings(raw);
+  if (!settings) return null;
+  return {
+    ...settings,
+    since: Number.isFinite(raw.since) && raw.since > 0 ? raw.since : Date.now(),
+    frozenThrough: isDateKey(raw.frozenThrough) ? raw.frozenThrough : null,
+  };
 }
 
 // A habit needs a kind and a name to be shown; anything else is repaired.
@@ -145,7 +170,9 @@ function sanitizeHabit(raw) {
   const log = sanitizeLog(raw.log, raw.kind === "daily" ? dailyEntry : routineEntry);
   const createdOn = isDateKey(raw.createdOn) ? raw.createdOn : Object.keys(log).sort()[0] ?? toDateKey();
   const base = { id: raw.id, kind: raw.kind, name: raw.name, createdOn };
-  return raw.kind === "daily" ? { ...base, target: toTarget(raw.target), log } : { ...base, log };
+  return raw.kind === "daily"
+    ? { ...base, target: toTarget(raw.target), log }
+    : { ...base, log, auto: sanitizeAuto(raw.auto) };
 }
 
 const updateHabit = (state, id, change) => ({
@@ -428,14 +455,16 @@ function reducer(state, action) {
         updatedState = state;
         break;
       }
-      const habit = {
+      const now = payload.now ?? Date.now();
+      let habit = {
         id: idGenerator(state.habits)(),
         kind: payload.kind,
         name,
-        createdOn: toDateKey(),
-        ...(payload.kind === "daily" ? { target: toTarget(payload.target) } : {}),
+        createdOn: toDateKey(new Date(now)),
+        ...(payload.kind === "daily" ? { target: toTarget(payload.target) } : { auto: null }),
         log: {},
       };
+      if (payload.kind === "routine") habit = withAutoSettings(habit, toAutoSettings(payload.auto), now);
       updatedState = { ...state, habits: [...state.habits, habit] };
       break;
     }
@@ -443,11 +472,17 @@ function reducer(state, action) {
     case "updateHabit": {
       // Blank names are ignored, like todos; the target only applies to daily.
       const name = typeof payload.name === "string" ? payload.name.trim() : "";
-      updatedState = updateHabit(state, payload.id, (habit) => ({
-        ...habit,
-        ...(name ? { name } : {}),
-        ...(habit.kind === "daily" && payload.target != null ? { target: toTarget(payload.target) } : {}),
-      }));
+      updatedState = updateHabit(state, payload.id, (habit) => {
+        const renamed = {
+          ...habit,
+          ...(name ? { name } : {}),
+          ...(habit.kind === "daily" && payload.target != null ? { target: toTarget(payload.target) } : {}),
+        };
+        // `auto` left out = unchanged; null = turn off. Earlier auto taps are
+        // saved first, so new settings never rewrite them.
+        if (habit.kind !== "routine" || payload.auto === undefined) return renamed;
+        return withAutoSettings(renamed, toAutoSettings(payload.auto), payload.now ?? Date.now());
+      });
       break;
     }
 
@@ -476,11 +511,23 @@ function reducer(state, action) {
         updatedState = state;
         break;
       }
+      // Each tap also saves when it happened (`plusAt`/`minusAt`), which the
+      // auto-tap clock restarts from; undo removes the latest one.
       updatedState = updateHabit(state, payload.id, (habit) => {
         if (habit.kind !== "routine") return habit;
         const entry = { plus: 0, minus: 0, ...habit.log[payload.date] };
-        entry[field] = Math.max(0, entry[field] + (payload.delta < 0 ? -1 : 1));
-        return withLogEntry(habit, payload.date, entry.plus || entry.minus ? entry : null);
+        const timesKey = `${field}At`;
+        const times = [...(entry[timesKey] ?? [])];
+        if (payload.delta < 0) {
+          if (entry[field] > 0) times.pop();
+          entry[field] = Math.max(0, entry[field] - 1);
+        } else {
+          entry[field] += 1;
+          if (Number.isFinite(payload.at)) times.push(payload.at);
+        }
+        if (times.length) entry[timesKey] = times.slice(-MAX_TAP_TIMES);
+        else delete entry[timesKey];
+        return withLogEntry(habit, payload.date, isEmptyRoutineEntry(entry) ? null : entry);
       });
       break;
     }
@@ -624,12 +671,14 @@ function StoreProvider({ children }) {
     });
   };
 
-  const addHabit = (kind, name, target) => {
-    dispatch({ type: "addHabit", payload: { kind, name, target } });
+  // `auto` (routines only): { direction, everyMinutes, maxPerDay }, or null
+  // for off. Left out when editing = keep the current setting.
+  const addHabit = (kind, name, target, auto = null) => {
+    dispatch({ type: "addHabit", payload: { kind, name, target, auto, now: Date.now() } });
   };
 
-  const editHabit = (id, name, target) => {
-    dispatch({ type: "updateHabit", payload: { id, name, target } });
+  const editHabit = (id, name, target, auto) => {
+    dispatch({ type: "updateHabit", payload: { id, name, target, auto, now: Date.now() } });
   };
 
   const deleteHabit = (id) => {
@@ -643,7 +692,7 @@ function StoreProvider({ children }) {
 
   // One + or - tap on a routine, logged on `date` (today by default).
   const logRoutine = (id, field, delta = 1, date = toDateKey()) => {
-    dispatch({ type: "logRoutine", payload: { id, field, delta, date } });
+    dispatch({ type: "logRoutine", payload: { id, field, delta, date, at: Date.now() } });
   };
 
   // Clearing the text removes the entry.

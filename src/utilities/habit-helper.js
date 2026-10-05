@@ -1,4 +1,5 @@
 import { toDateKey, weekDateOf } from "./day-helper";
+import { routineDay } from "./auto-tap";
 
 // Two kinds of habit:
 // - "daily": a fixed number of slots to fill each day (pray 5x, 8 glasses of
@@ -51,14 +52,18 @@ export function dailyWeek(habit, weekStart) {
   return { counts, done: counts.reduce((a, b) => a + b, 0), possible: habit.target * 7 };
 }
 
-export function routineWeek(habit, weekStart) {
+// The week's taps, manual and auto (as of `now`), and the resulting balance.
+export function routineWeek(habit, weekStart, now = Date.now()) {
   let plus = 0;
   let minus = 0;
+  let auto = 0;
   for (const date of weekDates(weekStart)) {
-    plus += habit.log[date]?.plus ?? 0;
-    minus += habit.log[date]?.minus ?? 0;
+    const day = routineDay(habit, date, now);
+    plus += day.totalPlus;
+    minus += day.totalMinus;
+    auto += day.autoPlus + day.autoMinus;
   }
-  return { plus, minus, balance: plus - minus };
+  return { plus, minus, auto, balance: plus - minus };
 }
 
 export function balanceLabel(balance) {
@@ -75,7 +80,7 @@ export function shortDate(dateKey) {
 
 // What each habit looked like on one date, for showing beside a journal entry.
 // Only habits that existed by then are included.
-export function daySummary(habits, dateKey) {
+export function daySummary(habits, dateKey, now = Date.now()) {
   return habits
     .filter((habit) => !habit.createdOn || habit.createdOn <= dateKey)
     .map((habit) => {
@@ -83,7 +88,7 @@ export function daySummary(habits, dateKey) {
         const count = dailyCount(habit, dateKey);
         return { id: habit.id, name: habit.name, text: `${count}/${habit.target}`, done: count >= habit.target };
       }
-      const { plus = 0, minus = 0 } = habit.log[dateKey] ?? {};
+      const { totalPlus: plus, totalMinus: minus } = routineDay(habit, dateKey, now);
       const text = plus || minus ? [plus && `+${plus}`, minus && `−${minus}`].filter(Boolean).join(" ") : "no taps";
       // Flagged only when slips outweighed good taps: one slip on a good day
       // shouldn't colour the whole day as a failure.

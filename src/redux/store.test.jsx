@@ -445,12 +445,17 @@ describe('habits', () => {
     await click('minus');
     await click('minus');
     await click('plus');
-    expect(habits()[0].log).toEqual({ '2026-10-02': { plus: 1, minus: 2 } });
+    const day = () => habits()[0].log['2026-10-02'];
+    expect(day()).toMatchObject({ plus: 1, minus: 2 });
+    // Each tap saves when it happened, which the auto-tap clock restarts from.
+    expect(day().minusAt).toHaveLength(2);
+    expect(day().plusAt).toHaveLength(1);
 
     await click('undoMinus');
     await click('undoMinus');
     await click('undoMinus');
-    expect(habits()[0].log).toEqual({ '2026-10-02': { plus: 1, minus: 0 } });
+    expect(day()).toMatchObject({ plus: 1, minus: 0 });
+    expect(day()).not.toHaveProperty('minusAt');
 
     await click('deleteRoutine');
     expect(habits()).toEqual([]);
@@ -522,12 +527,92 @@ describe('journal', () => {
 
   test('v4 -> v5 adds an empty journal; malformed entries are dropped', () => {
     window.localStorage.setItem(KEY, JSON.stringify({ version: 4, timers: [], notes: [], todos: [], habits: [], embeds: [] }));
-    expect(loadState(KEY, 'fri')).toMatchObject({ version: 5, journal: {} });
+    expect(loadState(KEY, 'fri')).toMatchObject({ version: STATE_VERSION, journal: {} });
 
     window.localStorage.setItem(KEY, JSON.stringify({
       version: 5, timers: [], notes: [], todos: [], habits: [], embeds: [],
       journal: { '2026-10-02': 'kept', '2026-10-01': '  ', yesterday: 'bad key', '2026-09-30': 42 },
     }));
     expect(loadState(KEY, 'fri').journal).toEqual({ '2026-10-02': 'kept' });
+  });
+});
+
+describe('routine auto tap', () => {
+  const KEY = import.meta.env.VITE_STORAGEKEY;
+  const NOW = new Date(2026, 9, 6, 9, 0).getTime(); // Tue 09:00
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  function AutoHarness() {
+    const ctx = useContext(store);
+    const routine = ctx.habits[0];
+    return (
+      <div>
+        <pre data-testid="habits">{JSON.stringify(ctx.habits)}</pre>
+        <button onClick={() => ctx.addHabit('routine', 'Smoke', null, { direction: 'plus', everyMinutes: 60, maxPerDay: 8 })}>addAuto</button>
+        <button onClick={() => ctx.addHabit('routine', 'Plain')}>addPlain</button>
+        <button onClick={() => ctx.editHabit(routine.id, 'Smoke', null, { direction: 'minus', everyMinutes: 90, maxPerDay: 6 })}>editAuto</button>
+        <button onClick={() => ctx.editHabit(routine.id, 'Renamed')}>rename</button>
+        <button onClick={() => ctx.editHabit(routine.id, 'Smoke', null, null)}>off</button>
+      </div>
+    );
+  }
+
+  function setup() {
+    const user = userEvent.setup();
+    render(<StoreProvider><AutoHarness /></StoreProvider>);
+    return {
+      habit: () => JSON.parse(screen.getByTestId('habits').textContent)[0],
+      click: (name) => user.click(screen.getByText(name)),
+    };
+  }
+
+  test('a new routine can start with auto on, from the moment it is added', async () => {
+    const { habit, click } = setup();
+    await click('addAuto');
+    expect(habit().auto).toEqual({ direction: 'plus', everyMinutes: 60, maxPerDay: 8, since: NOW, frozenThrough: '2026-10-05' });
+  });
+
+  test('a routine added without auto has it off', async () => {
+    const { habit, click } = setup();
+    await click('addPlain');
+    expect(habit().auto).toBeNull();
+  });
+
+  test('editing settings saves what was earned so far; renaming leaves auto alone', async () => {
+    const { habit, click } = setup();
+    await click('addAuto');
+    vi.setSystemTime(NOW + 3.5 * 3600 * 1000); // 12:30, 3 hours earned
+
+    await click('rename');
+    expect(habit().auto.since).toBe(NOW);
+
+    await click('editAuto');
+    expect(habit().log['2026-10-06']).toEqual({ plus: 0, minus: 0, autoPlus: 3 });
+    expect(habit().auto).toMatchObject({ direction: 'minus', everyMinutes: 90, maxPerDay: 6 });
+
+    await click('off');
+    expect(habit().auto).toBeNull();
+    expect(habit().log['2026-10-06'].autoPlus).toBe(3);
+  });
+
+  test('saved auto settings and tap times survive a reload; bad ones are dropped', () => {
+    window.localStorage.setItem(KEY, JSON.stringify({
+      version: 6, timers: [], notes: [], todos: [], embeds: [], journal: {},
+      habits: [
+        { id: 1, kind: 'routine', name: 'A', createdOn: '2026-10-01',
+          auto: { direction: 'plus', everyMinutes: 2, maxPerDay: 999, since: NOW, frozenThrough: 'nope' },
+          log: { '2026-10-06': { plus: 1, plusAt: [NOW, 'x', -5], autoPlus: 2.5, autoMinus: 3 } } },
+        { id: 2, kind: 'routine', name: 'B', createdOn: '2026-10-01', auto: { direction: 'up' }, log: {} },
+      ],
+    }));
+    const [a, b] = loadState(KEY, 'tue').habits;
+    expect(a.auto).toEqual({ direction: 'plus', everyMinutes: 5, maxPerDay: 100, since: NOW, frozenThrough: null });
+    expect(a.log['2026-10-06']).toEqual({ plus: 1, minus: 0, plusAt: [NOW], autoMinus: 3 });
+    expect(b.auto).toBeNull();
   });
 });

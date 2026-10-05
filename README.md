@@ -14,6 +14,7 @@ A productivity app that pairs weekly timers with quick notes, to help you practi
 - **Journal**: A diary entry per date, saved as you type. Each entry shows how your habits went that day, and "Past entries" lists older ones, newest first.
 - **Daily habits**: Habits with a set number per day (pray 5×, 8 glasses of water). Tap circles to fill them; earlier days this week can be filled in from the day picker.
 - **Routines**: A +/− balance for habits like resisting an urge. A slip (−) is a debt that good taps (+) pay back; the balance starts clear every Monday, with an undo after each tap.
+- **Auto tap**: A routine can tap for you every N minutes, up to a max per day, as credit (+1, for something you resist) or debt (−1, for something you should do regularly). A tap the other way restarts the timer. It keeps counting while the app is closed: the count is worked out from the time when you open it, with no server or background task.
 - **Habit history**: A weekly heatmap for daily habits and a weekly owed/ahead bar chart for routines, starting from the week each habit was created.
 - **Saved locally**: Timers, notes, habits and journal entries are stored in your browser's localStorage, with automatic migration when the data format changes.
 - **Installable PWA**: Works offline and can be installed on desktop or mobile, with a prompt when a new version is available.
