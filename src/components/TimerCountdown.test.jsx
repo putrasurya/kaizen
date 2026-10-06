@@ -41,6 +41,31 @@ test('shows the remaining time derived from seconds/secondsSpent on mount', () =
   expect(screen.getByText('.05')).toBeInTheDocument();
 });
 
+test('a paused timer that has partly run shows what is left on mount (e.g. after the app was reloaded)', () => {
+  // 25 of 60 minutes used: 35 minutes left, not 0.00.00.
+  renderCountdown({ seconds: 3600, secondsSpent: 1500 });
+  expect(screen.getByText('0.35')).toBeInTheDocument();
+  expect(screen.getByText('.00')).toBeInTheDocument();
+});
+
+test('while paused, the display follows saved progress when it changes', () => {
+  const view = renderCountdown({ seconds: 600, secondsSpent: 0 });
+  expect(screen.getByText('0.10')).toBeInTheDocument();
+  view.rerender(
+    <StoreProvider>
+      <Harness seconds={600} secondsSpent={125} />
+    </StoreProvider>
+  );
+  expect(screen.getByText('0.07')).toBeInTheDocument();
+  expect(screen.getByText('.55')).toBeInTheDocument();
+});
+
+test('a finished timer shows zero', () => {
+  renderCountdown({ seconds: 600, secondsSpent: 600 });
+  expect(screen.getByText('0.00')).toBeInTheDocument();
+  expect(screen.getByTestId('play-state')).toHaveTextContent('false');
+});
+
 test(
   'ticks the display down while playing',
   async () => {

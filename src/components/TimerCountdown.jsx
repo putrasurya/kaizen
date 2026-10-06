@@ -28,9 +28,15 @@ export default function Countdown({ id, play, seconds, secondsSpent, setPlay, cl
     tiktok();
   }, [play]);
 
+  // While paused, the display follows the saved progress: on first render
+  // (including when the browser reloads the app after it was in the
+  // background), after a reset, and whenever progress is saved. Without this,
+  // a partly-run paused timer showed 0.00.00 until play was pressed.
   useEffect(() => {
-    secondsSpentPropChanged();
-  }, [secondsSpent])
+    if (play) return;
+    spent.current = secondsToMillis(secondsSpent || 0);
+    tiktok();
+  }, [secondsSpent, seconds]);
 
   function playPropChanged() {
     if (false === play) {
@@ -38,14 +44,6 @@ export default function Countdown({ id, play, seconds, secondsSpent, setPlay, cl
       updateSecondsSpent(id, millisToSeconds(spent.current));
     } else {
       timeStart.current = new Date();
-    }
-  }
-
-  function secondsSpentPropChanged() {
-    if (secondsSpent === 0 && false === play) {
-      timeStart.current = new Date();
-      spent.current = 0;
-      tiktok();
     }
   }
 
