@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Typography, Space, Tooltip } from "antd";
-import { useEffect, useState, useRef, useContext } from "react";
+import { useCallback, useEffect, useState, useRef, useContext } from "react";
 import { store } from "../redux/store";
 import { millisToSeconds, secondsToMillis, extractToHourMinuteAndSecondWithPadZero } from "../utilities/time-helper";
 
@@ -13,87 +13,105 @@ function Buzz() {
   audio.play()
 }
 
+// How the countdown keeps time:
+// - While playing, elapsed time always comes from the clock (when it started
+//   plus how much was already spent), never from counting ticks. Browsers slow
+//   down or pause timers in hidden tabs and locked phones, so ticks are only
+//   for redrawing.
+// - There's one scheduled tick at a time, aimed at the next whole second.
+// - Coming back to the app (tab visible, window focus, page restored) redraws
+//   straight away instead of waiting for a slowed-down tick.
+// - Progress is saved when the app goes to the background and at least once
+//   a minute while running, so a reload or a discarded tab loses little.
 export default function Countdown({ id, play, seconds, secondsSpent, setPlay, className }) {
   const { updateSecondsSpent, incrementReps } = useContext(store);
-  const [hour, setHour] = useState(0);
-  const [minute, setMinute] = useState("00");
-  const [second, setSecond] = useState("00");
-  const [tooltipDisplay, setTooltipDisplay] = useState("0.00/0.00");
-  const spent = useRef(secondsToMillis(secondsSpent || 0));
-  const timeStart = useRef(null);
+  const [spentMs, setSpentMs] = useState(() => secondsToMillis(secondsSpent || 0));
+  const run = useRef(null); // { startedAt, baseMs } while playing
+  const timer = useRef();
+  const lastSaved = useRef(secondsSpent || 0);
+  const latest = useRef();
+  latest.current = { id, seconds, setPlay, updateSecondsSpent, incrementReps };
 
+  const elapsed = () => run.current.baseMs + (Date.now() - run.current.startedAt);
+
+  const save = (secs) => {
+    lastSaved.current = secs;
+    latest.current.updateSecondsSpent(latest.current.id, secs);
+  };
+
+  const tick = useCallback(() => {
+    clearTimeout(timer.current);
+    if (!run.current) return;
+    const { id, seconds } = latest.current;
+    const total = secondsToMillis(seconds);
+    const ms = elapsed();
+
+    if (ms >= total) {
+      run.current = null;
+      setSpentMs(total);
+      save(seconds);
+      latest.current.incrementReps(id);
+      Buzz();
+      latest.current.setPlay(false);
+      return;
+    }
+
+    setSpentMs(ms);
+    const secs = millisToSeconds(ms);
+    if (secs - lastSaved.current >= 60) save(secs);
+    timer.current = setTimeout(tick, 1000 - (ms % 1000) + 5);
+  }, []);
+
+  // Play starts a run from the saved progress; pause ends it and saves.
   useEffect(() => {
-    playPropChanged();
-    if (!play) return;
-    tiktok();
+    if (play) {
+      run.current = { startedAt: Date.now(), baseMs: secondsToMillis(secondsSpent || 0) };
+      lastSaved.current = secondsSpent || 0;
+      tick();
+    } else if (run.current) {
+      const ms = elapsed();
+      run.current = null;
+      clearTimeout(timer.current);
+      setSpentMs(ms);
+      save(millisToSeconds(ms));
+    }
   }, [play]);
 
   // While paused, the display follows the saved progress: on first render
   // (including when the browser reloads the app after it was in the
-  // background), after a reset, and whenever progress is saved. Without this,
-  // a partly-run paused timer showed 0.00.00 until play was pressed.
+  // background), after a reset, and whenever progress is saved.
   useEffect(() => {
-    if (play) return;
-    spent.current = secondsToMillis(secondsSpent || 0);
-    tiktok();
+    if (!run.current) setSpentMs(secondsToMillis(secondsSpent || 0));
   }, [secondsSpent, seconds]);
 
-  function playPropChanged() {
-    if (false === play) {
-      timeStart.current = null;
-      updateSecondsSpent(id, millisToSeconds(spent.current));
-    } else {
-      timeStart.current = new Date();
-    }
-  }
+  useEffect(() => {
+    const redraw = () => {
+      if (document.visibilityState !== "hidden") tick();
+    };
+    const saveNow = () => {
+      if (run.current) save(millisToSeconds(elapsed()));
+    };
+    const onVisibility = () => (document.visibilityState === "hidden" ? saveNow() : redraw());
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", redraw);
+    window.addEventListener("pageshow", redraw);
+    window.addEventListener("pagehide", saveNow);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", redraw);
+      window.removeEventListener("pageshow", redraw);
+      window.removeEventListener("pagehide", saveNow);
+      clearTimeout(timer.current);
+    };
+  }, [tick]);
 
-  function updateTooltipDisplay() {
-    const [originHour, originMinute] = extractToHourMinuteAndSecondWithPadZero(seconds);
-    setTooltipDisplay(`${hour}.${minute} / ${originHour}.${originMinute}`)
-  }
-
-  function tiktok() {
-    updateTooltipDisplay();
-
-    if (spent.current >= secondsToMillis(seconds)) {
-      if (spent.current > secondsToMillis(seconds)) {
-        setHour((_) => 0);
-        setMinute((_) => "00");
-        setSecond((_) => "00");
-        updateSecondsSpent(id, seconds);
-        incrementReps(id);
-        if (play === true) {
-          Buzz();
-        }
-        setPlay(false);
-      }
-      return;
-    }
-
-    const secondsLeft = seconds - millisToSeconds(spent.current);
-    const [hour, minute, second] = extractToHourMinuteAndSecondWithPadZero(secondsLeft);
-
-    setHour((_) => hour);
-    setMinute((_) => minute);
-    setSecond((_) => second);
-
-    // stop when it's not playing
-    if (!play || null === timeStart.current) return;
-
-    const realtimeGap = new Date().getTime() - timeStart.current.getTime();
-    spent.current = secondsSpent * 1000 + realtimeGap;
-
-    // update store when it's rounded to a minute
-    if (millisToSeconds(spent.current) % 60 === 0) {
-      updateSecondsSpent(id, millisToSeconds(spent.current));
-    }
-
-    setTimeout(() => tiktok(), 1000);
-  }
+  const secondsLeft = Math.max(0, seconds - millisToSeconds(spentMs));
+  const [hour, minute, second] = extractToHourMinuteAndSecondWithPadZero(secondsLeft);
+  const [originHour, originMinute] = extractToHourMinuteAndSecondWithPadZero(seconds);
 
   return (
     <Space>
-      <Tooltip title={tooltipDisplay}>
+      <Tooltip title={`${hour}.${minute} / ${originHour}.${originMinute}`}>
         <Title level={3} className={className}>
           {hour}.{minute}
           <small style={{ fontWeight: 300, fontSize: "0.7em" }}>.{second}</small>
