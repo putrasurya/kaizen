@@ -8,6 +8,7 @@ import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { StoreProvider } from "./redux/store";
 import AppUpdatePrompt from "./components/AppUpdatePrompt";
+import { getAlarm } from "./utilities/buzz";
 
 // Modal.confirm() (used by TimerItem's delete/reset confirmations) is a static
 // method that renders into its own root outside the component tree, so it
@@ -33,17 +34,9 @@ if (rootElement.hasChildNodes()) {
   createRoot(rootElement).render(app);
 }
 
-function InitializeAudio() {
-  const audio = document.createElement('audio');
-  audio.src = `${import.meta.env.VITE_BUZZ_WAV}`;
-  audio.autoplay = true;
-  audio.hidden = true;
-  audio.volume = 0;
-  audio.id = "buzzbuzz";
-  document.getElementById("root").append(audio);
-}
-
-InitializeAudio()
+// Created up front (on <body>, outside React's root) so the sound is loaded
+// before the first timer finishes.
+getAlarm();
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
