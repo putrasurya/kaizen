@@ -36,6 +36,7 @@ export function describeState(state) {
     plural(state.habits.length, "habit"),
     plural(Object.keys(state.journal).length, "journal entry", "journal entries"),
     plural(state.notes.length, "reminder"),
+    plural(state.milestones?.length ?? 0, "milestone"),
   ].join(", ");
 }
 
