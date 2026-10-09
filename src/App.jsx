@@ -1,4 +1,4 @@
-import { LockOutlined, SaveOutlined, UnlockOutlined } from "@ant-design/icons";
+import { LockOutlined, SaveOutlined, TrophyOutlined, UnlockOutlined } from "@ant-design/icons";
 import { Button, Col, Row, Space, Tooltip, Typography } from "antd";
 import { useContext, useState } from "react";
 import { store } from "./redux/store";
@@ -15,6 +15,7 @@ import { PrivacyProvider, usePrivacy } from "./redux/privacy";
 import LockScreen from "./components/LockScreen";
 import PrivacySettings from "./components/PrivacySettings";
 import BackupSettings from "./components/BackupSettings";
+import Milestones from "./components/Milestones";
 
 const { Title, Text } = Typography;
 
@@ -40,6 +41,7 @@ function AppContent() {
   const { locked, covered } = usePrivacy();
   const { generation } = useContext(store);
   const [backupOpen, setBackupOpen] = useState(false);
+  const [milestonesOpen, setMilestonesOpen] = useState(false);
   const hidden = locked || covered;
 
   return (
@@ -57,6 +59,13 @@ function AppContent() {
             <Tooltip title="Represent times left from 24 hours of today" className={styles.hide_on_mobile}>
               <Text>{hourLeftForToday}h/24h</Text>
             </Tooltip>
+            <Button
+              type="text"
+              icon={<TrophyOutlined />}
+              aria-label="Milestones"
+              title="Milestones"
+              onClick={() => setMilestonesOpen(true)}
+            />
             <Button
               type="text"
               icon={<SaveOutlined />}
@@ -94,6 +103,7 @@ function AppContent() {
       </div>
       {/* Outside the keyed page, so it stays open (with its Undo) after a restore. */}
       <BackupSettings open={backupOpen} onClose={() => setBackupOpen(false)} />
+      <Milestones open={milestonesOpen} onClose={() => setMilestonesOpen(false)} />
       <LockScreen />
     </DayProvider>
   );

@@ -10,7 +10,11 @@ import { toAutoSettings, withAutoSettings } from "../utilities/auto-tap";
 // 4: a `habits` list (daily slots and +/- routines, see habit-helper).
 // 5: a `journal` of entries keyed by calendar date ("YYYY-MM-DD").
 // 6: routines can auto tap (`auto`), and save when each manual tap happened.
-export const STATE_VERSION = 6;
+// 7: a `milestones` list (achieved milestones and goals for the year).
+export const STATE_VERSION = 7;
+
+export const MILESTONE_TITLE_MAX = 120;
+export const MILESTONE_NOTE_MAX = 500;
 
 export const JOURNAL_MAX_LENGTH = 10000;
 
@@ -21,6 +25,7 @@ const emptyState = () => ({
   todos: [],
   habits: [],
   journal: {},
+  milestones: [],
   embeds: [],
 });
 
@@ -198,6 +203,26 @@ function sanitizeJournal(raw) {
   return journal;
 }
 
+// A milestone is anything worth remembering from the year, written by the
+// user: "Got the AWS certification". With `achievedOn` (a date) it's reached
+// and belongs to that date's year; without, it's a goal for `year`. A goal
+// from a past year can be `kept` there as "not reached" instead of carried
+// into the new year.
+const isYear = (value) => Number.isInteger(value) && value >= 2000 && value <= 2100;
+const cleanText = (value, max) => (typeof value === "string" ? value.trim().slice(0, max) : "");
+
+export const milestoneYear = (milestone) =>
+  milestone.achievedOn ? Number(milestone.achievedOn.slice(0, 4)) : milestone.year;
+
+function sanitizeMilestone(raw) {
+  if (!isRecord(raw)) return null;
+  const title = cleanText(raw.title, MILESTONE_TITLE_MAX);
+  if (!title) return null;
+  const achievedOn = isDateKey(raw.achievedOn) ? raw.achievedOn : null;
+  const year = achievedOn ? Number(achievedOn.slice(0, 4)) : isYear(raw.year) ? raw.year : new Date().getFullYear();
+  return { id: raw.id, title, note: cleanText(raw.note, MILESTONE_NOTE_MAX), achievedOn, year, kept: !achievedOn && raw.kept === true };
+}
+
 function migrateState(parsed, today) {
   const version = Number.isFinite(parsed.version) ? parsed.version : 1;
 
@@ -237,6 +262,8 @@ function migrateState(parsed, today) {
     habits,
     // v4 -> v5 only adds the journal, so older data simply has no entries.
     journal: sanitizeJournal(parsed.journal),
+    // v6 -> v7 only adds the list, so older data simply has none yet.
+    milestones: withUniqueIds(sanitizeList(parsed.milestones, sanitizeMilestone))[0],
     embeds: Array.isArray(parsed.embeds) ? parsed.embeds : [],
   };
 }
@@ -567,6 +594,65 @@ function reducer(state, action) {
       break;
     }
 
+    case "addMilestone": {
+      const title = cleanText(payload.title, MILESTONE_TITLE_MAX);
+      const achievedOn = isDateKey(payload.achievedOn) ? payload.achievedOn : null;
+      if (!title || (!achievedOn && !isYear(payload.year))) {
+        updatedState = state;
+        break;
+      }
+      const milestone = {
+        id: idGenerator(state.milestones)(),
+        title,
+        note: cleanText(payload.note, MILESTONE_NOTE_MAX),
+        achievedOn,
+        year: achievedOn ? Number(achievedOn.slice(0, 4)) : payload.year,
+        kept: false,
+      };
+      updatedState = { ...state, milestones: [...state.milestones, milestone] };
+      break;
+    }
+
+    case "updateMilestone": {
+      // Title and note always; `achievedOn` when given (a date to mark it
+      // reached or move it, null to make it a goal again).
+      updatedState = {
+        ...state,
+        milestones: state.milestones.map((milestone) => {
+          if (milestone.id !== payload.id) return milestone;
+          const title = cleanText(payload.title ?? milestone.title, MILESTONE_TITLE_MAX) || milestone.title;
+          const note = cleanText(payload.note ?? milestone.note, MILESTONE_NOTE_MAX);
+          const achievedOn =
+            "achievedOn" in payload ? (isDateKey(payload.achievedOn) ? payload.achievedOn : null) : milestone.achievedOn;
+          const year = achievedOn ? Number(achievedOn.slice(0, 4)) : milestone.year;
+          return { ...milestone, title, note, achievedOn, year, kept: achievedOn ? false : milestone.kept };
+        }),
+      };
+      break;
+    }
+
+    case "deleteMilestone": {
+      updatedState = { ...state, milestones: state.milestones.filter((m) => m.id !== payload.id) };
+      break;
+    }
+
+    case "settleOldGoals": {
+      // Unreached goals from years before `toYear`: carried into it, or kept
+      // in their own year as "not reached".
+      if (!isYear(payload.toYear)) {
+        updatedState = state;
+        break;
+      }
+      updatedState = {
+        ...state,
+        milestones: state.milestones.map((m) => {
+          if (m.achievedOn || m.kept || m.year >= payload.toYear) return m;
+          return payload.carry ? { ...m, year: payload.toYear } : { ...m, kept: true };
+        }),
+      };
+      break;
+    }
+
     case "setJournalEntry": {
       if (!isDateKey(payload.date)) {
         updatedState = state;
@@ -738,6 +824,24 @@ function StoreProvider({ children }) {
     dispatch({ type: "logRoutine", payload: { id, field, delta, date, at: Date.now() } });
   };
 
+  // `achievedOn` (a date) for a milestone already reached, or `year` for a goal.
+  const addMilestone = ({ title, note = "", achievedOn = null, year = null }) => {
+    dispatch({ type: "addMilestone", payload: { title, note, achievedOn, year } });
+  };
+
+  const updateMilestone = (id, changes) => {
+    dispatch({ type: "updateMilestone", payload: { id, ...changes } });
+  };
+
+  const deleteMilestone = (id) => {
+    dispatch({ type: "deleteMilestone", payload: { id } });
+  };
+
+  // Unreached goals from before `toYear`: carry (true) or keep where they are.
+  const settleOldGoals = (toYear, carry) => {
+    dispatch({ type: "settleOldGoals", payload: { toYear, carry } });
+  };
+
   // Clearing the text removes the entry.
   const setJournalEntry = (date, text) => {
     dispatch({ type: "setJournalEntry", payload: { date, text } });
@@ -789,6 +893,11 @@ function StoreProvider({ children }) {
         setDailyCount,
         logRoutine,
         journal: state.journal,
+        milestones: state.milestones,
+        addMilestone,
+        updateMilestone,
+        deleteMilestone,
+        settleOldGoals,
         fullState: state,
         generation,
         replaceAll,

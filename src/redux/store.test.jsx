@@ -229,13 +229,13 @@ describe('loadState (persistence and migration)', () => {
   });
 
   test('missing storage gives an empty current-version state', () => {
-    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], journal: {}, embeds: [] });
+    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], journal: {}, milestones: [], embeds: [] });
   });
 
   test('unparseable storage does not crash and is backed up instead of lost', () => {
     window.localStorage.setItem(KEY, '{"timers": [oops');
 
-    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], journal: {}, embeds: [] });
+    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], journal: {}, milestones: [], embeds: [] });
     expect(window.localStorage.getItem(`${KEY}.backup`)).toBe('{"timers": [oops');
   });
 
@@ -629,6 +629,10 @@ describe('backup round trip', () => {
           auto: { direction: 'plus', everyMinutes: 60, maxPerDay: 8, since: 1789000000000, frozenThrough: '2026-09-30' } },
       ],
       journal: { '2026-10-01': 'Dear diary' }, embeds: [],
+      milestones: [
+        { id: 6, title: 'Got the AWS certification', note: 'Second try', achievedOn: '2026-10-08', year: 2026, kept: false },
+        { id: 7, title: 'Visit Japan', note: '', achievedOn: null, year: 2026, kept: false },
+      ],
     };
     const file = JSON.stringify(backupFromState(state, new Date('2026-10-06T00:00:00Z')));
     expect(stateFromBackup(file, 'tue').state).toEqual(state);
