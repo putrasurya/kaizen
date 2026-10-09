@@ -1,0 +1,33 @@
+.duration {
+  margin-bottom: 16px;
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hint {
+  display: block;
+  font-size: 13px;
+  margin: 4px 0 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+}
+
+.switchCell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.switchCell button {
+  align-self: flex-start;
+}

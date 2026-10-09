@@ -1,19 +1,15 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Typography, Space, Tooltip } from "antd";
-import { useCallback, useEffect, useState, useRef, useContext } from "react";
-import { store } from "../redux/store";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { millisToSeconds, secondsToMillis, extractToHourMinuteAndSecondWithPadZero } from "../utilities/time-helper";
 
 const { Title } = Typography;
 
-function Buzz() {
-  const audio = document.getElementById('buzzbuzz');
-  audio.hidden = true;
-  audio.volume = 1;
-  audio.play()
-}
-
-// How the countdown keeps time:
+// A countdown clock. It reports progress (`onProgress(seconds)`) and when it
+// reaches zero (`onFinish()`); what happens next (buzz, +1 rep, a break,
+// back to full time) is up to the timer card.
+//
+// How it keeps time:
 // - While playing, elapsed time always comes from the clock (when it started
 //   plus how much was already spent), never from counting ticks. Browsers slow
 //   down or pause timers in hidden tabs and locked phones, so ticks are only
@@ -21,38 +17,33 @@ function Buzz() {
 // - There's one scheduled tick at a time, aimed at the next whole second.
 // - Coming back to the app (tab visible, window focus, page restored) redraws
 //   straight away instead of waiting for a slowed-down tick.
-// - Progress is saved when the app goes to the background and at least once
-//   a minute while running, so a reload or a discarded tab loses little.
-export default function Countdown({ id, play, seconds, secondsSpent, setPlay, className }) {
-  const { updateSecondsSpent, incrementReps } = useContext(store);
+// - Progress is reported when the app goes to the background, on pause, and
+//   at least once a minute while running, so a reload loses little.
+export default function Countdown({ play, seconds, secondsSpent, onProgress, onFinish, className }) {
   const [spentMs, setSpentMs] = useState(() => secondsToMillis(secondsSpent || 0));
   const run = useRef(null); // { startedAt, baseMs } while playing
   const timer = useRef();
   const lastSaved = useRef(secondsSpent || 0);
   const latest = useRef();
-  latest.current = { id, seconds, setPlay, updateSecondsSpent, incrementReps };
+  latest.current = { seconds, onProgress, onFinish };
 
   const elapsed = () => run.current.baseMs + (Date.now() - run.current.startedAt);
 
   const save = (secs) => {
     lastSaved.current = secs;
-    latest.current.updateSecondsSpent(latest.current.id, secs);
+    latest.current.onProgress?.(secs);
   };
 
   const tick = useCallback(() => {
     clearTimeout(timer.current);
     if (!run.current) return;
-    const { id, seconds } = latest.current;
-    const total = secondsToMillis(seconds);
+    const total = secondsToMillis(latest.current.seconds);
     const ms = elapsed();
 
     if (ms >= total) {
       run.current = null;
       setSpentMs(total);
-      save(seconds);
-      latest.current.incrementReps(id);
-      Buzz();
-      latest.current.setPlay(false);
+      latest.current.onFinish?.();
       return;
     }
 

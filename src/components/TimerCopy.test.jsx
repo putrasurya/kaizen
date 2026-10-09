@@ -64,7 +64,7 @@ test('copies a timer to the chosen days as independent timers with fresh state',
   // Fri's original shows 0.50 left; Mon's copy is full and not running.
   const visibleCountdowns = screen.getAllByText('1.00').filter((el) => el.closest('[hidden]') === null);
   expect(visibleCountdowns).toHaveLength(1);
-  expect(screen.getByRole('button', { name: 'play-circle' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Start' })).toBeVisible();
 });
 
 test('deleting a copy leaves the original and other copies alone', async () => {
@@ -72,7 +72,7 @@ test('deleting a copy leaves the original and other copies alone', async () => {
   await copyTo(user, ['Mon', 'Tue']);
 
   await pickDay(user, /^Mon$/);
-  await user.click(screen.getByRole('button', { name: 'delete' }));
+  await user.click(screen.getByRole('button', { name: 'Delete timer' }));
   // antd renders a Modal.confirm title twice; find the dialog via its confirm title.
   const confirmTitle = await waitFor(() => {
     const title = document.querySelector('.ant-modal-confirm-title');

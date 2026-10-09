@@ -75,10 +75,10 @@ test('submitting adds a timer with the chosen duration in seconds', async () => 
   const user = renderAppTimer();
   const dialog = await openDialog(user);
 
-  await user.type(screen.getByPlaceholderText(/Focus on Works/i), 'Deep Work');
+  await user.type(screen.getByRole('textbox', { name: 'Title' }), 'Deep Work');
   // Leave hours at the 1h default; only set minutes to 20.
   await setStepper(user, dialog, 'Minutes', 20);
-  await user.click(screen.getByRole('button', { name: 'OK' }));
+  await user.click(screen.getByRole('button', { name: 'Add' }));
 
   expect(await screen.findByText('Deep Work')).toBeInTheDocument();
   // 1h + 20m = 1h20m, shown both by AppTimer's "Times left" header and by the new
@@ -90,13 +90,13 @@ test('a zero duration cannot be submitted', async () => {
   const user = renderAppTimer();
   const dialog = await openDialog(user);
 
-  await user.type(screen.getByPlaceholderText(/Focus on Works/i), 'Nothing');
+  await user.type(screen.getByRole('textbox', { name: 'Title' }), 'Nothing');
   await setStepper(user, dialog, 'Hours', 0);
 
   expect(readout(dialog)).toHaveTextContent('Duration: 0 minutes');
   expect(await within(dialog).findByText('Choose a duration longer than 0 minutes')).toBeInTheDocument();
 
-  await user.click(screen.getByRole('button', { name: 'OK' }));
+  await user.click(screen.getByRole('button', { name: 'Add' }));
 
   // Still open, nothing added.
   expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -122,9 +122,9 @@ describe('selected day', () => {
     const dialog = await openDialog(user);
     expect(within(dialog).getByText('Add Timer for Tuesday')).toBeInTheDocument();
 
-    await user.type(screen.getByPlaceholderText(/Focus on Works/i), 'Tuesday Pomodoro');
+    await user.type(screen.getByRole('textbox', { name: 'Title' }), 'Tuesday Pomodoro');
     await clickPreset(user, dialog, '25 minutes');
-    await user.click(screen.getByRole('button', { name: 'OK' }));
+    await user.click(screen.getByRole('button', { name: 'Add' }));
 
     expect(await screen.findByText('Tuesday Pomodoro')).toBeVisible();
     const saved = JSON.parse(window.localStorage.getItem(KEY)).timers;

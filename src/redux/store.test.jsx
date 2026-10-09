@@ -22,7 +22,6 @@ function Harness() {
       <button onClick={() => ctx.addTimer('Focus', 3600)}>addTimer</button>
       <button onClick={() => timer && ctx.updateSecondsSpent(timer.id, 120)}>updateSecondsSpent</button>
       <button onClick={() => timer && ctx.incrementReps(timer.id)}>incrementReps</button>
-      <button onClick={() => timer && ctx.resetReps(timer.id)}>resetReps</button>
       <button onClick={() => timer && ctx.deleteTimer(timer.id)}>deleteTimer</button>
       <button onClick={() => ctx.addNote('remember this')}>addNote</button>
       <button onClick={() => note && ctx.deleteNote(note.id)}>deleteNote</button>
@@ -72,16 +71,16 @@ describe('store reducer (via StoreProvider)', () => {
     expect(readPersistedState().timers[0].secondsSpent).toBe(120);
   });
 
-  test('incrementReps and resetReps update the reps counter', async () => {
+  test('incrementReps counts each finished round, per date, and reps cannot be reset', async () => {
     const user = renderHarness();
 
     await user.click(screen.getByText('addTimer'));
     await user.click(screen.getByText('incrementReps'));
     await user.click(screen.getByText('incrementReps'));
-    expect(readState()).toContain('"reps":2');
-
-    await user.click(screen.getByText('resetReps'));
-    expect(readState()).toContain('"reps":0');
+    const timer = readPersistedState().timers[0];
+    expect(timer.reps).toBe(2);
+    expect(Object.values(timer.repsOn)).toEqual([2]);
+    expect(screen.queryByText('resetReps')).not.toBeInTheDocument();
   });
 
   test('deleteTimer removes the timer', async () => {
@@ -193,7 +192,7 @@ describe('loadState (persistence and migration)', () => {
     }
     // Today's copy is the original record, progress and all...
     expect(state.timers.find((t) => t.day === 'wed' && t.title === 'Deep Work'))
-      .toEqual({ ...legacy.timers[0], day: 'wed' });
+      .toEqual({ ...legacy.timers[0], day: 'wed', repsOn: {}, pomodoro: null });
     // ...and the other days start fresh with the same settings.
     expect(state.timers.find((t) => t.day === 'mon' && t.title === 'Deep Work'))
       .toMatchObject({ seconds: 3600, initial: 3600, secondsSpent: 0, reps: 0 });
@@ -263,7 +262,8 @@ describe('loadState (persistence and migration)', () => {
     expect(state.embeds).toEqual([]);
     expect(state.timers).toHaveLength(2);
     // No day on current-version data: shown today rather than lost.
-    expect(state.timers[0]).toMatchObject({ id: 5, day: 'thu', seconds: 600, secondsSpent: 600, initial: 600, reps: 0 });
+    // Spent past its length: a finished round, which now means ready again.
+    expect(state.timers[0]).toMatchObject({ id: 5, day: 'thu', seconds: 600, secondsSpent: 0, initial: 600, reps: 0 });
     expect(state.timers[1]).toMatchObject({ title: 'Duplicate id', day: 'tue', seconds: 0 });
     expect(state.timers[1].id).not.toBe(5);
   });
@@ -284,7 +284,7 @@ describe('v3: notes per day and todos', () => {
     const state = loadState(KEY, 'fri');
 
     expect(state.version).toBe(STATE_VERSION);
-    expect(state.timers).toEqual(v2.timers);
+    expect(state.timers).toEqual(v2.timers.map((t) => ({ ...t, repsOn: {}, pomodoro: null })));
     expect(state.todos).toEqual([]);
     expect(state.notes).toHaveLength(14);
     expect(new Set(state.notes.map((n) => n.id)).size).toBe(14);
@@ -621,7 +621,8 @@ describe('backup round trip', () => {
   test('a backup restores to exactly the state it was made from', async () => {
     const { backupFromState, stateFromBackup } = await import('./store');
     const state = {
-      version: STATE_VERSION, timers: [{ id: 1, day: 'mon', title: 'Focus', seconds: 60, secondsSpent: 10, initial: 60, reps: 2 }],
+      version: STATE_VERSION, timers: [{ id: 1, day: 'mon', title: 'Focus', seconds: 60, secondsSpent: 10, initial: 60, reps: 2, repsOn: { '2026-10-05': 2 },
+        pomodoro: { breakSeconds: 300, longBreakSeconds: 900, longEvery: 4, autoBreak: true } }],
       notes: [{ id: 2, day: 'tue', content: 'n' }], todos: [{ id: 3, day: 'wed', text: 't', doneOn: '2026-09-30' }],
       habits: [
         { id: 4, kind: 'daily', name: 'Pray', createdOn: '2026-09-01', target: 5, log: { '2026-10-01': 4 } },

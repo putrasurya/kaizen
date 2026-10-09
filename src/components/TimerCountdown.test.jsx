@@ -3,26 +3,45 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import TimerCountdown from './TimerCountdown';
 import { StoreProvider, store } from '../redux/store';
 
-// TimerCountdown drives its own display via a recursive setTimeout(tiktok, 1000)
-// loop while play=true, computing elapsed time from real Date deltas — and reports
-// back to the store (updateSecondsSpent, incrementReps) rather than owning play
-// state itself, so this harness reproduces what TimerItem normally supplies
-// (play/setPlay). These tests use real timers and wait for real elapsed time
-// rather than faking them, to avoid needing the component's `new Date()` calls to
-// stay in lockstep with a fake clock.
-function Harness({ seconds, secondsSpent = 0, initialPlay = false }) {
+// TimerCountdown is a clock: it reports progress (onProgress) and reaching zero
+// (onFinish); the timer card decides what happens next. This harness plays the
+// card's part: it stops on finish and counts finishes.
+function Harness({ seconds, secondsSpent = 0, initialPlay = false, onFinish }) {
   const [play, setPlay] = useState(initialPlay);
+  const [finished, setFinished] = useState(0);
   return (
     <div>
       <span data-testid="play-state">{String(play)}</span>
+      <span data-testid="finished">{finished}</span>
       <TimerCountdown
-        id={1}
         play={play}
         seconds={seconds}
         secondsSpent={secondsSpent}
-        setPlay={setPlay}
+        onFinish={() => {
+          setFinished((n) => n + 1);
+          setPlay(false);
+          onFinish?.();
+        }}
       />
     </div>
+  );
+}
+
+// Progress saved to the store, like TimerItem does.
+function Live({ initialPlay = true, withToggle = false }) {
+  const { timers, updateSecondsSpent } = useContext(store);
+  const [play, setPlay] = useState(initialPlay);
+  return (
+    <>
+      {withToggle && <button onClick={() => setPlay((p) => !p)}>toggle</button>}
+      <TimerCountdown
+        play={play}
+        seconds={600}
+        secondsSpent={timers[0].secondsSpent}
+        onProgress={(secs) => updateSecondsSpent(1, secs)}
+        onFinish={() => setPlay(false)}
+      />
+    </>
   );
 }
 
@@ -89,7 +108,7 @@ test(
 );
 
 test(
-  'reaching zero stops playback, buzzes, and increments reps',
+  'reaching zero reports the finish once',
   async () => {
     renderCountdown({ seconds: 2, secondsSpent: 0, initialPlay: true });
 
@@ -97,7 +116,7 @@ test(
       timeout: 10000,
     });
 
-    expect(window.HTMLMediaElement.prototype.play).toHaveBeenCalled();
+    expect(screen.getByTestId('finished')).toHaveTextContent('1');
     expect(screen.getByText('0.00')).toBeInTheDocument();
   }
 );
@@ -117,7 +136,7 @@ describe('in the background', () => {
     vi.setSystemTime(T0);
     visibility = 'visible';
     window.localStorage.setItem(KEY, JSON.stringify({
-      version: 7, notes: [], todos: [], habits: [], journal: {}, embeds: [], milestones: [],
+      version: 8, notes: [], todos: [], habits: [], journal: {}, embeds: [], milestones: [],
       timers: [{ id: 1, day: 'sat', title: 'Focus', seconds: 600, secondsSpent: 0, initial: 600, reps: 0 }],
     }));
   });
@@ -145,11 +164,6 @@ describe('in the background', () => {
   });
 
   test('progress is saved when the app goes to the background', () => {
-    function Live() {
-      const { timers } = useContext(store);
-      const [play, setPlay] = useState(true);
-      return <TimerCountdown id={1} play={play} seconds={600} secondsSpent={timers[0].secondsSpent} setPlay={setPlay} />;
-    }
     render(<StoreProvider><Live /></StoreProvider>);
 
     vi.setSystemTime(T0 + 65 * 1000);
@@ -158,11 +172,6 @@ describe('in the background', () => {
   });
 
   test('progress is saved at least once a minute while running, even if ticks were skipped', () => {
-    function Live() {
-      const { timers } = useContext(store);
-      const [play, setPlay] = useState(true);
-      return <TimerCountdown id={1} play={play} seconds={600} secondsSpent={timers[0].secondsSpent} setPlay={setPlay} />;
-    }
     render(<StoreProvider><Live /></StoreProvider>);
 
     // Throttled: the next tick only runs 97 s later, skipping the 60 s mark.
@@ -172,17 +181,7 @@ describe('in the background', () => {
   });
 
   test('pausing and playing again quickly never makes the display jump back', () => {
-    function Live() {
-      const { timers } = useContext(store);
-      const [play, setPlay] = useState(false);
-      return (
-        <>
-          <button onClick={() => setPlay((p) => !p)}>toggle</button>
-          <TimerCountdown id={1} play={play} seconds={600} secondsSpent={timers[0].secondsSpent} setPlay={setPlay} />
-        </>
-      );
-    }
-    render(<StoreProvider><Live /></StoreProvider>);
+    render(<StoreProvider><Live initialPlay={false} withToggle /></StoreProvider>);
     const toggle = screen.getByText('toggle');
 
     fireEvent.click(toggle); // play
