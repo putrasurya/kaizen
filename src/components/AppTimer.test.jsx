@@ -12,10 +12,10 @@ async function addTimer(user, title) {
   await user.click(screen.getByRole('button', { name: 'Add' }));
 }
 
-test('renders the Timers heading and an Add Timer control with no timers', () => {
+test('renders the Pomodoro timer heading and an Add Timer control with no timers', () => {
   renderAppTimer();
 
-  expect(screen.getByRole('heading', { name: 'Timers' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Pomodoro timer' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /add timer/i })).toBeInTheDocument();
   expect(screen.getByText('0.0 Times left')).toBeInTheDocument();
 });
