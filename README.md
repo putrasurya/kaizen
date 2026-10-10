@@ -11,7 +11,7 @@ A private, local-first app for daily improvement: plan your days with todos and 
 One **day picker** drives the whole page. Today is selected by default, and a dot marks days with a running timer.
 
 - **Todo**: A checklist per weekday. Ticks only count for this week, so every week starts unchecked again. Edit in place, or copy a todo to other weekdays.
-- **Pomodoro timer**: Countdown timers per weekday. When one reaches zero it buzzes, adds a rep and goes back to full time, ready for the next round. Reps are counted per day ("3 reps today · 1 h 30 min") and only go up; the all-time total is in the tooltip. Edit a timer's title and length, start a round over, copy a timer to other days, and see the total time left for the day plus how many hours are left in today.
+- **Timers**: Countdown timers per weekday. When one reaches zero it buzzes, adds a rep and goes back to full time, ready for the next round. Reps are counted per day ("3 reps today · 1 h 30 min") and only go up; the all-time total is in the tooltip. Edit a timer's title and length, start a round over, copy a timer to other days, and see the total time left for the day plus how many hours are left in today.
 - **Pomodoro**: Turn on Pomodoro breaks for a timer: a short break after each focus round and a long one every few rounds (5 / 15 min every 4 rounds by default). Breaks can start by themselves or wait for play, and can be skipped. Finished rounds show as 🍅 with the time focused today, and dots show how far you are from the long break.
 - **Reminders**: Quick notes for a weekday that come back every week on that day.
 

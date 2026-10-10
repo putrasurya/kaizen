@@ -84,12 +84,12 @@ describe("App layout order", () => {
 
   // The single phone column follows source order (antd's lg order classes only
   // apply from 992px up), so the DOM order is the phone order.
-  test('on a phone the order is day picker, Pomodoro timer, Todo, Journal, Reminders', () => {
+  test('on a phone the order is day picker, Timers, Todo, Journal, Reminders', () => {
     restoreViewport = mockViewportWidth(360);
     renderApp();
 
     const picker = screen.getByRole('radiogroup', { name: 'Day of the week' });
-    const timers = screen.getByRole('region', { name: 'Pomodoro timer' });
+    const timers = screen.getByRole('region', { name: 'Timers' });
     const todos = screen.getByRole('region', { name: 'Todo' });
     const journal = screen.getByRole('region', { name: 'Journal' });
     const notes = screen.getByText('Reminders');
@@ -112,7 +112,7 @@ describe("App layout order", () => {
     renderApp();
 
     const [timersCol, listsCol] = screen.getByTestId('sections').children;
-    expect(within(timersCol).getByRole('region', { name: 'Pomodoro timer' })).toBeInTheDocument();
+    expect(within(timersCol).getByRole('region', { name: 'Timers' })).toBeInTheDocument();
     expect(timersCol).toHaveClass('ant-col-lg-order-2', 'ant-col-lg-12');
     expect(within(listsCol).getByRole('region', { name: 'Todo' })).toBeInTheDocument();
     expect(within(listsCol).getByRole('region', { name: 'Journal' })).toBeInTheDocument();

@@ -44,7 +44,7 @@ describe('setting up', () => {
   test('off by default: the app opens straight away', () => {
     renderApp();
     expect(lockScreen()).not.toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Pomodoro timer' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Timers' })).toBeInTheDocument();
   });
 
   test('choose a PIN, repeat it, and agree to the warning before it turns on', async () => {
@@ -88,8 +88,8 @@ describe('when locked', () => {
     await seedLock();
     renderApp();
     expect(lockScreen()).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Pomodoro timer' })).not.toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Pomodoro timer', hidden: true })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Timers' })).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Timers', hidden: true })).toBeInTheDocument();
   });
 
   test('the right PIN unlocks; a wrong one says how many tries are left', async () => {
@@ -102,7 +102,7 @@ describe('when locked', () => {
 
     await typePin(user, '1234', lockScreen());
     await waitFor(() => expect(lockScreen()).not.toBeInTheDocument());
-    expect(screen.getByRole('region', { name: 'Pomodoro timer' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Timers' })).toBeInTheDocument();
     expect(savedLock().failures).toBe(0);
   });
 
@@ -160,7 +160,7 @@ describe('leaving the app', () => {
   test('covers the app as soon as it goes to the background', async () => {
     await unlockedApp(60000);
     setVisible(false);
-    expect(screen.queryByRole('region', { name: 'Pomodoro timer' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Timers' })).not.toBeInTheDocument();
   });
 
   test('"Immediately" asks for the PIN on every return', async () => {
@@ -178,7 +178,7 @@ describe('leaving the app', () => {
       vi.setSystemTime(Date.now() + 20 * 1000);
       setVisible(true);
       expect(lockScreen()).not.toBeInTheDocument();
-      expect(screen.getByRole('region', { name: 'Pomodoro timer' })).toBeInTheDocument();
+      expect(screen.getByRole('region', { name: 'Timers' })).toBeInTheDocument();
 
       setVisible(false);
       vi.setSystemTime(Date.now() + 2 * 60 * 1000);

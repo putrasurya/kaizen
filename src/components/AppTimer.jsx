@@ -24,12 +24,12 @@ function AppTimer() {
   };
 
   return (
-    <section aria-label="Pomodoro timer">
+    <section aria-label="Timers">
       {/* Top padding matches the List headers of Todo / Reminders, so the
           section titles line up side by side on desktop. */}
       <Row justify="space-between" align="middle" className="margin-bottom-1" style={{ paddingTop: 12 }}>
         <Title level={3} style={{ fontWeight: 300 }} className="no-margin-important">
-          Pomodoro timer
+          Timers
         </Title>
         <Text style={{ fontSize: 16 }}>{totalHour()}</Text>
       </Row>
