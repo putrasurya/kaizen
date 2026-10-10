@@ -57,32 +57,32 @@ test('shows the timer title', async () => {
 test('play button toggles to pause and back', async () => {
   const user = await renderTimerItem();
 
-  const playButton = screen.getByRole('button', { name: 'play-circle' });
+  const playButton = screen.getByRole('button', { name: 'Start' });
   await user.click(playButton);
-  expect(screen.getByRole('button', { name: 'pause-circle' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
 
-  await user.click(screen.getByRole('button', { name: 'pause-circle' }));
-  expect(screen.getByRole('button', { name: 'play-circle' })).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Pause' }));
+  expect(screen.getByRole('button', { name: 'Start' })).toBeInTheDocument();
 });
 
-test('play button is disabled once the timer is fully spent', async () => {
+test('play is never disabled: a finished round goes back to full time instead of staying at zero', async () => {
   await renderTimerItem({ seconds: 60, secondsSpent: 60 });
-  expect(screen.getByRole('button', { name: 'play-circle' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled();
 });
 
 test('reset/delete buttons are disabled while playing', async () => {
   const user = await renderTimerItem();
 
-  await user.click(screen.getByRole('button', { name: 'play-circle' }));
+  await user.click(screen.getByRole('button', { name: 'Start' }));
 
-  expect(screen.getByRole('button', { name: 'undo' })).toBeDisabled();
-  expect(screen.getByRole('button', { name: 'delete' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Start this round over' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Delete timer' })).toBeDisabled();
 });
 
 test('confirming delete removes the timer via Modal.confirm', async () => {
   const user = await renderTimerItem();
 
-  await user.click(screen.getByRole('button', { name: 'delete' }));
+  await user.click(screen.getByRole('button', { name: 'Delete timer' }));
 
   const dialog = await findConfirmDialog(/delete timer\?/i);
 
@@ -95,9 +95,9 @@ test('confirming delete removes the timer via Modal.confirm', async () => {
 test('confirming reset zeroes secondsSpent', async () => {
   const user = await renderTimerItem({ secondsSpent: 600 });
 
-  await user.click(screen.getByRole('button', { name: 'undo' }));
+  await user.click(screen.getByRole('button', { name: 'Start this round over' }));
 
-  const dialog = await findConfirmDialog(/reset timer\?/i);
+  const dialog = await findConfirmDialog(/Start this round over\?/i);
 
   await user.click(within(dialog).getByRole('button', { name: 'OK' }));
 
@@ -113,7 +113,7 @@ describe('responsive layout', () => {
     restoreViewport = mockViewportWidth(375);
     await renderTimerItem();
 
-    for (const name of ['play-circle', 'undo', 'delete']) {
+    for (const name of ['Start', 'Start this round over', 'Delete timer']) {
       expect(screen.getByRole('button', { name })).toHaveClass('ant-btn-lg');
     }
     // Title and controls are allowed to wrap onto separate lines.
@@ -124,7 +124,7 @@ describe('responsive layout', () => {
     restoreViewport = mockViewportWidth(1280);
     await renderTimerItem();
 
-    for (const name of ['play-circle', 'undo', 'delete']) {
+    for (const name of ['Start', 'Start this round over', 'Delete timer']) {
       expect(screen.getByRole('button', { name })).not.toHaveClass('ant-btn-lg');
     }
     expect(screen.getByText('Focus on Works').closest('.ant-row')).toHaveClass('ant-row-no-wrap');

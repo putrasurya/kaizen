@@ -60,13 +60,13 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
-// jsdom doesn't implement media playback; TimerCountdown's Buzz() calls .play() on
-// the #buzzbuzz audio element when a countdown completes. Production code never
-// uses the return value — tests only assert it was called.
+// jsdom doesn't implement media playback; buzz() (src/utilities/buzz.js) calls
+// .play() on the #buzzbuzz audio element when a round or break finishes. Tests
+// only assert it was called.
 window.HTMLMediaElement.prototype.play = vi.fn();
 window.HTMLMediaElement.prototype.pause = vi.fn();
 
-// Mirrors src/index.js's InitializeAudio(), which normally creates this element at
+// Mirrors getAlarm() in src/index.jsx, which normally creates this element at
 // app startup. Components render in isolation in tests, so provide it globally.
 beforeEach(() => {
   if (!document.getElementById('buzzbuzz')) {

@@ -8,8 +8,8 @@ function renderAppTimer() {
 
 async function addTimer(user, title) {
   await user.click(screen.getByRole('button', { name: /add timer/i }));
-  await user.type(screen.getByPlaceholderText(/Focus on Works/i), title);
-  await user.click(screen.getByRole('button', { name: 'OK' }));
+  await user.type(screen.getByRole('textbox', { name: 'Title' }), title);
+  await user.click(screen.getByRole('button', { name: 'Add' }));
 }
 
 test('renders the Timers heading and an Add Timer control with no timers', () => {
@@ -132,15 +132,15 @@ describe('day view', () => {
     ]);
     const user = renderAppTimer();
 
-    await user.click(screen.getByRole('button', { name: 'play-circle' }));
+    await user.click(screen.getByRole('button', { name: 'Start' }));
     await pickDay(user, /^Mon$/);
 
     // Hidden, not unmounted: the countdown is still in its playing state.
     expect(screen.getByText('Friday Focus')).not.toBeVisible();
-    expect(screen.getAllByRole('button', { name: 'pause-circle', hidden: true })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Pause', hidden: true })).toHaveLength(1);
     expect(dayRadio(/^Fri\s?\(today\),\s?timer running$/)).toBeInTheDocument();
 
     await pickDay(user, /^Fri/);
-    expect(screen.getByRole('button', { name: 'pause-circle' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeVisible();
   });
 });

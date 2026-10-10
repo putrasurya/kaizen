@@ -23,3 +23,47 @@
   justify-content: space-between;
   margin-top: 4px;
 }
+
+.countdown_break {
+  color: #49aa19 !important;
+  margin: 0 !important;
+}
+
+.info {
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 15px;
+  min-width: 0;
+}
+
+.title {
+  min-width: 0;
+}
+
+.phase {
+  margin: 0 !important;
+  flex: none;
+}
+
+.dots {
+  display: inline-flex;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+}
+
+.dotOn {
+  background: #1668dc;
+  border-color: #1668dc;
+}

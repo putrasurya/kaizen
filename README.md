@@ -11,7 +11,8 @@ A private, local-first app for daily improvement: plan your days with todos and 
 One **day picker** drives the whole page. Today is selected by default, and a dot marks days with a running timer.
 
 - **Todo**: A checklist per weekday. Ticks only count for this week, so every week starts unchecked again. Edit in place, or copy a todo to other weekdays.
-- **Timers**: Countdown timers per weekday. Each time one reaches zero it buzzes and counts a rep. Copy a timer to other days, and see the total time left for the day plus how many hours are left in today.
+- **Timers**: Countdown timers per weekday. When one reaches zero it buzzes, adds a rep and goes back to full time, ready for the next round. Reps are counted per day ("3 reps today · 1 h 30 min") and only go up; the all-time total is in the tooltip. Edit a timer's title and length, start a round over, copy a timer to other days, and see the total time left for the day plus how many hours are left in today.
+- **Pomodoro**: Turn on Pomodoro breaks for a timer: a short break after each focus round and a long one every few rounds (5 / 15 min every 4 rounds by default). Breaks can start by themselves or wait for play, and can be skipped. Finished rounds show as 🍅 with the time focused today, and dots show how far you are from the long break.
 - **Reminders**: Quick notes for a weekday that come back every week on that day.
 
 ### Build habits
@@ -104,8 +105,9 @@ src/
 │   ├── DayPicker.jsx          # Weekday picker that drives every section
 │   ├── AppTodo.jsx            # Weekly todo checklist
 │   ├── AppTimer.jsx           # Timer list and time-left summary
-│   ├── TimerItem.jsx          # A single timer with its controls
-│   ├── TimerCountdown.jsx     # Countdown display, alarm and reps
+│   ├── TimerItem.jsx          # A single timer: rounds, reps, Pomodoro breaks
+│   ├── TimerForm.jsx          # Add / edit timer dialog
+│   ├── TimerCountdown.jsx     # Countdown clock (keeps time in the background)
 │   ├── AppNote.jsx            # Reminders
 │   ├── AppHabits.jsx          # Daily habits and Routines (incl. auto tap status)
 │   ├── HabitForm.jsx          # Add/edit a habit, auto tap settings

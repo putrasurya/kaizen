@@ -2,6 +2,7 @@ import { createContext, useReducer, useState } from "react";
 import { DAYS, getTodayKey, isDateKey, isDayKey, toDateKey, weekDateOf } from "../utilities/day-helper";
 import { isHabitKind, toTarget } from "../utilities/habit-helper";
 import { toAutoSettings, withAutoSettings } from "../utilities/auto-tap";
+import { toPomodoro } from "../utilities/pomodoro";
 
 // Bump when the persisted shape changes, and add a step to migrateState().
 // 1 (implicit, no `version` field): timers had no `day`.
@@ -11,7 +12,9 @@ import { toAutoSettings, withAutoSettings } from "../utilities/auto-tap";
 // 5: a `journal` of entries keyed by calendar date ("YYYY-MM-DD").
 // 6: routines can auto tap (`auto`), and save when each manual tap happened.
 // 7: a `milestones` list (achieved milestones and goals for the year).
-export const STATE_VERSION = 7;
+// 8: timers count reps per date (`repsOn`) and can have Pomodoro breaks
+//    (`pomodoro`). `reps` stays as the all-time total.
+export const STATE_VERSION = 8;
 
 export const MILESTONE_TITLE_MAX = 120;
 export const MILESTONE_NOTE_MAX = 500;
@@ -65,7 +68,17 @@ const sanitizeList = (list, sanitize) =>
 
 // A copy keeps the timer's settings and starts with fresh runtime state.
 function copyTimerTo(timer, day, id) {
-  return { ...timer, id, day, secondsSpent: 0, reps: 0 };
+  return { ...timer, id, day, secondsSpent: 0, reps: 0, repsOn: {} };
+}
+
+// Reps finished on each date: { "2026-10-10": 3 }.
+function sanitizeRepsOn(raw) {
+  const repsOn = {};
+  if (!isRecord(raw)) return repsOn;
+  for (const [date, count] of Object.entries(raw)) {
+    if (isDateKey(date) && Number.isInteger(count) && count > 0) repsOn[date] = count;
+  }
+  return repsOn;
 }
 
 // "Identical" = same settings on that day, so copying again would only add a
@@ -105,9 +118,14 @@ function sanitizeTimer(raw) {
     ...raw,
     title: typeof raw.title === "string" ? raw.title : String(raw.title ?? ""),
     seconds,
-    secondsSpent: Math.min(toCount(raw.secondsSpent), seconds),
+    // A finished round now goes back to full time; older data could be left
+    // fully spent (stuck at zero), which is the same as ready.
+    secondsSpent: toCount(raw.secondsSpent) >= seconds ? 0 : toCount(raw.secondsSpent),
     initial: toCount(raw.initial, seconds),
     reps: toCount(raw.reps),
+    // v7 -> v8: no per-day history yet, and Pomodoro off.
+    repsOn: sanitizeRepsOn(raw.repsOn),
+    pomodoro: toPomodoro(raw.pomodoro),
   };
 }
 
@@ -358,6 +376,8 @@ function reducer(state, action) {
         secondsSpent: payload.secondsSpent,
         initial: payload.seconds,
         reps: 0,
+        repsOn: {},
+        pomodoro: toPomodoro(payload.pomodoro),
       };
       updatedState = { ...state, timers: [timer, ...state.timers] };
       break;
@@ -396,27 +416,36 @@ function reducer(state, action) {
     }
 
     case "incrementReps": {
+      // Reps only ever go up: one per finished round, on the date it finished.
+      const date = isDateKey(payload.date) ? payload.date : toDateKey();
       updatedState = {
         ...state,
         timers: state.timers.map((timer) => {
           if (timer.id !== payload.id) return timer;
-          return {
-            ...timer,
-            reps: timer.reps + 1,
-          };
+          const repsOn = { ...timer.repsOn, [date]: (timer.repsOn?.[date] ?? 0) + 1 };
+          return { ...timer, reps: timer.reps + 1, repsOn };
         }),
       };
       break;
     }
 
-    case "resetReps": {
+    case "editTimer": {
+      // Title, focus length and Pomodoro settings. A new length starts the
+      // current round over, since progress against the old length means little.
+      const title = typeof payload.title === "string" ? payload.title.trim() : "";
       updatedState = {
         ...state,
         timers: state.timers.map((timer) => {
           if (timer.id !== payload.id) return timer;
+          const seconds = toCount(payload.seconds, timer.seconds) || timer.seconds;
+          const lengthChanged = seconds !== timer.seconds;
           return {
             ...timer,
-            reps: 0,
+            ...(title ? { title } : {}),
+            seconds,
+            initial: seconds,
+            secondsSpent: lengthChanged ? 0 : timer.secondsSpent,
+            pomodoro: "pomodoro" in payload ? toPomodoro(payload.pomodoro) : timer.pomodoro,
           };
         }),
       };
@@ -711,7 +740,7 @@ function StoreProvider({ children }) {
   // rebuild and drop any copies sections keep while editing.
   const [generation, setGeneration] = useState(0);
 
-  const addTimer = (title, seconds, secondsSpent = 0, play = false, day = getTodayKey()) => {
+  const addTimer = (title, seconds, secondsSpent = 0, play = false, day = getTodayKey(), pomodoro = null) => {
     dispatch({
       type: "addTimer",
       payload: {
@@ -720,8 +749,14 @@ function StoreProvider({ children }) {
         secondsSpent,
         play,
         day,
+        pomodoro,
       },
     });
+  };
+
+  // `pomodoro`: settings, or null for off.
+  const editTimer = (id, { title, seconds, pomodoro }) => {
+    dispatch({ type: "editTimer", payload: { id, title, seconds, pomodoro } });
   };
 
   const copyTimer = (id, days) => {
@@ -748,17 +783,11 @@ function StoreProvider({ children }) {
     });
   };
 
-  const incrementReps = (id) => {
+  // One finished round, counted on `date` (today by default).
+  const incrementReps = (id, date = toDateKey()) => {
     dispatch({
       type: "incrementReps",
-      payload: { id },
-    });
-  };
-
-  const resetReps = (id) => {
-    dispatch({
-      type: "resetReps",
-      payload: { id },
+      payload: { id, date },
     });
   };
 
@@ -874,6 +903,7 @@ function StoreProvider({ children }) {
       value={{
         timers: state.timers,
         addTimer,
+        editTimer,
         copyTimer,
         deleteTimer,
         updateSecondsSpent,
@@ -905,8 +935,7 @@ function StoreProvider({ children }) {
         embeds: state.embeds,
         addEmbed,
         deleteEmbed,
-        incrementReps,
-        resetReps
+        incrementReps
       }}
     >
       {children}
