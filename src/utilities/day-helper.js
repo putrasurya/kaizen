@@ -1,6 +1,9 @@
 // Weekday keys, Monday-first, as stored on each timer's `day` field.
 export const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
+// A reminder can show on every day instead of one weekday.
+export const EVERY_DAY = "every";
+
 export const DAY_LABELS = {
   mon: "Mon",
   tue: "Tue",

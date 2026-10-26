@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { store, StoreProvider, loadState, STATE_VERSION, isTodoDone } from './store';
+import { store, StoreProvider, loadState, STATE_VERSION, isTodoDone, backupFromState, stateFromBackup } from './store';
 import { DAYS } from '../utilities/day-helper';
 
 // redux/store.js's action functions (addTimer, deleteNote, ...) only exist on the
@@ -637,5 +637,31 @@ describe('backup round trip', () => {
     };
     const file = JSON.stringify(backupFromState(state, new Date('2026-10-06T00:00:00Z')));
     expect(stateFromBackup(file, 'tue').state).toEqual(state);
+  });
+});
+
+describe('every-day reminders', () => {
+  const KEY = import.meta.env.VITE_STORAGEKEY;
+
+  test('keep their "every" day on load instead of moving to today', () => {
+    window.localStorage.setItem(KEY, JSON.stringify({
+      version: 8,
+      notes: [
+        { id: 1, day: 'every', content: 'drink water' },
+        { id: 2, day: 'nope', content: 'lost day' },
+      ],
+    }));
+    const state = loadState(KEY, 'tue');
+    expect(state.notes).toEqual([
+      { id: 1, day: 'every', content: 'drink water' },
+      { id: 2, day: 'tue', content: 'lost day' },
+    ]);
+  });
+
+  test('survive a backup and restore', () => {
+    window.localStorage.setItem(KEY, JSON.stringify({ version: 8, notes: [{ id: 1, day: 'every', content: 'drink water' }] }));
+    const backup = JSON.stringify(backupFromState(loadState(KEY, 'tue')));
+    const restored = stateFromBackup(backup, 'sat');
+    expect((restored.state ?? restored).notes).toEqual([{ id: 1, day: 'every', content: 'drink water' }]);
   });
 });

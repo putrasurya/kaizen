@@ -1,5 +1,5 @@
 import { createContext, useReducer, useState } from "react";
-import { DAYS, getTodayKey, isDateKey, isDayKey, toDateKey, weekDateOf } from "../utilities/day-helper";
+import { DAYS, EVERY_DAY, getTodayKey, isDateKey, isDayKey, toDateKey, weekDateOf } from "../utilities/day-helper";
 import { isHabitKind, toTarget } from "../utilities/habit-helper";
 import { toAutoSettings, withAutoSettings } from "../utilities/auto-tap";
 import { toPomodoro } from "../utilities/pomodoro";
@@ -275,7 +275,9 @@ function migrateState(parsed, today) {
     ...parsed,
     version: Math.max(version, STATE_VERSION),
     timers: onValidDay(timers, today),
-    notes: onValidDay(notes, today),
+    // A reminder can also show on every day (EVERY_DAY); no migration needed,
+    // older data simply has none.
+    notes: notes.map((note) => (note.day === EVERY_DAY ? note : onValidDay([note], today)[0])),
     todos: onValidDay(todos, today),
     habits,
     // v4 -> v5 only adds the journal, so older data simply has no entries.
@@ -463,7 +465,7 @@ function reducer(state, action) {
     case "addNote": {
       const note = {
         id: idGenerator(state.notes)(),
-        day: isDayKey(payload.day) ? payload.day : getTodayKey(),
+        day: isDayKey(payload.day) || payload.day === EVERY_DAY ? payload.day : getTodayKey(),
         content: payload.content,
       };
       updatedState = { ...state, notes: [note, ...state.notes] };
@@ -791,6 +793,7 @@ function StoreProvider({ children }) {
     });
   };
 
+  // `day` is a weekday key, or EVERY_DAY to show the reminder on all days.
   const addNote = (content, day = getTodayKey()) => {
     dispatch({
       type: "addNote",
