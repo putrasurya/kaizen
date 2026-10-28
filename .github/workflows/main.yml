@@ -25,6 +25,8 @@ jobs:
       run: |
         npm run test
     - name: Production Build
+      env:
+        VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
       run: |
         npm run build
     - name: Deploy to S3

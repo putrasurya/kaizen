@@ -1,4 +1,7 @@
 import { act, fireEvent, screen, within } from '@testing-library/react';
+import { useContext } from 'react';
+import { store } from '../redux/store';
+import { toDateKey } from '../utilities/day-helper';
 import AppJournal from './AppJournal';
 import { renderWithDay, pickDay } from '../test-utils/renderWithDay';
 
@@ -111,4 +114,26 @@ test('past entries lists other dates newest first, with older ones on demand', a
 test('past entries is disabled until there is another entry', () => {
   renderWithDay(<AppJournal />);
   expect(pastButton()).toBeDisabled();
+});
+
+describe('synced from another device', () => {
+  function Remote() {
+    const { applySync } = useContext(store);
+    return (
+      <button onClick={() => applySync((current) => ({ ...current, journal: { ...current.journal, [toDateKey()]: 'Written on the laptop' } }))}>
+        remote edit
+      </button>
+    );
+  }
+
+  test('the entry shows a change made elsewhere when nothing is being typed here', async () => {
+    const user = renderWithDay(
+      <>
+        <Remote />
+        <AppJournal />
+      </>
+    );
+    await user.click(screen.getByText('remote edit'));
+    expect(screen.getByRole('textbox', { name: /Journal for/ })).toHaveValue('Written on the laptop');
+  });
 });

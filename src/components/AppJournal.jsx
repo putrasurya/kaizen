@@ -3,6 +3,7 @@ import { Button, Empty, Grid, Input, Modal, Row, Tag, Typography } from "antd";
 import { useContext, useEffect, useRef, useState } from "react";
 import { JOURNAL_MAX_LENGTH, store } from "../redux/store";
 import { useDay } from "../redux/day";
+import { useSync } from "../sync/SyncProvider";
 import { DAY_NAMES, weekDateOf } from "../utilities/day-helper";
 import { daySummary, longDate } from "../utilities/habit-helper";
 import styles from "./AppJournal.module.css";
@@ -38,6 +39,7 @@ function DaySummary({ date }) {
 // by date, so switching days unmounts it).
 function JournalEditor({ date, size }) {
   const { journal, setJournalEntry } = useContext(store);
+  const { enabled: syncing } = useSync();
   const [text, setText] = useState(() => journal[date] ?? "");
   const [status, setStatus] = useState(null);
   const pending = useRef(null);
@@ -52,6 +54,13 @@ function JournalEditor({ date, size }) {
   };
 
   useEffect(() => () => save.current(), []);
+
+  // The entry changed elsewhere (synced from another device): show it,
+  // unless there's typing here that hasn't been saved yet.
+  const stored = journal[date] ?? "";
+  useEffect(() => {
+    if (pending.current === null) setText(stored);
+  }, [stored]);
 
   const handleChange = (e) => {
     const value = e.target.value;
@@ -85,7 +94,7 @@ function JournalEditor({ date, size }) {
         className={styles.editor}
       />
       <Text type="secondary" className={styles.status} aria-live="polite">
-        {status ?? (text.trim() ? "Saved on this device" : " ")}
+        {status ?? (text.trim() ? (syncing ? "Saved, syncs with Google Drive" : "Saved on this device") : " ")}
       </Text>
     </>
   );

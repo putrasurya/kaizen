@@ -1,8 +1,9 @@
 import { DownloadOutlined, UploadOutlined } from "@ant-design/icons";
 import { Alert, Button, Divider, Modal, Space, Typography } from "antd";
 import { useContext, useRef, useState } from "react";
-import { BACKUP_MAX_BYTES, BackupError, backupFromState, stateFromBackup, store } from "../redux/store";
+import { BACKUP_MAX_BYTES, BackupError, backupFromState, stateFromBackup, store, withFreshIds } from "../redux/store";
 import { toDateKey } from "../utilities/day-helper";
+import { useSync } from "../sync/SyncProvider";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -53,7 +54,7 @@ function lastBackupText(iso, now = Date.now()) {
   return `Last backup: ${ago} (${formatWhen(iso)}).`;
 }
 
-function downloadJson(filename, value) {
+export function downloadJson(filename, value) {
   const blob = new Blob([JSON.stringify(value)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -67,6 +68,7 @@ function downloadJson(filename, value) {
 
 function BackupSettings({ open, onClose }) {
   const { fullState, replaceAll } = useContext(store);
+  const { enabled: syncing } = useSync();
   const [lastExport, setLastExport] = useState(() => read(lastExportKey()));
   const [pending, setPending] = useState(null); // { state, exportedAt, fileName }
   const [error, setError] = useState(null);
@@ -108,12 +110,14 @@ function BackupSettings({ open, onClose }) {
     // wrong file isn't the end of the world.
     write(beforeImportKey(), JSON.stringify(fullState));
     setRestored(fullState);
-    replaceAll(pending.state);
+    // With sync on, records deleted earlier stay deleted on every device, so
+    // restored records get new ids to come back for sure.
+    replaceAll(syncing ? withFreshIds(pending.state) : pending.state);
     setPending(null);
   };
 
   const handleUndo = () => {
-    replaceAll(restored);
+    replaceAll(syncing ? withFreshIds(restored) : restored);
     write(beforeImportKey(), null);
     setRestored(null);
   };
@@ -173,6 +177,7 @@ function BackupSettings({ open, onClose }) {
                 {describeState(pending.state)}.
               </Text>
               <Text>What&apos;s in Kaizen now ({describeState(fullState)}) will be replaced.</Text>
+              {syncing && <Text type="warning">Sync is on, so your other devices will get the restored data too.</Text>}
               <Space wrap>
                 <Button danger type="primary" onClick={handleRestore}>
                   Replace my data
