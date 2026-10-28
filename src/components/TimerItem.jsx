@@ -1,8 +1,9 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   CopyOutlined,
   DeleteOutlined,
   EditOutlined,
+  HeatMapOutlined,
   PauseCircleFilled,
   PlayCircleFilled,
   UndoOutlined,
@@ -18,12 +19,13 @@ import styles from "./TimerItem.module.css";
 import TimerItemReps from "./TimerItemReps";
 import TimerCopy from "./TimerCopy";
 import TimerForm from "./TimerForm";
+import TimerHistory from "./TimerHistory";
 
 // One timer. At zero it buzzes, adds a rep for today and goes back to full
 // time, ready for the next round. With Pomodoro on, a break follows each
 // round (a long one every few rounds), started automatically or by play.
 function TimerItem({ timer, onPlayChange }) {
-  const { deleteTimer, updateSecondsSpent, incrementReps, editTimer } = useContext(store);
+  const { deleteTimer, updateSecondsSpent, incrementReps, editTimer, logFocus } = useContext(store);
   const { today, todayDate } = useDay();
   const [play, setPlay] = useState(false);
   const [phase, setPhase] = useState("focus"); // "focus" | "break"
@@ -34,6 +36,10 @@ function TimerItem({ timer, onPlayChange }) {
   const [round, setRound] = useState(0);
   const [showCopy, setShowCopy] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  // How much of this round is already in the focus log, so each save only
+  // adds the time since the last one. Break time is never logged.
+  const logged = useRef(timer.secondsSpent);
   // Phones: title on its own line, countdown + controls spread across the next
   // one, with larger buttons for touch.
   const isMobile = !!Grid.useBreakpoint().xs;
@@ -44,6 +50,17 @@ function TimerItem({ timer, onPlayChange }) {
   useEffect(() => {
     onPlayChange?.(timer.id, play);
   }, [play]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Progress went back (round started over, or a new length): log from there.
+  useEffect(() => {
+    if (timer.secondsSpent < logged.current) logged.current = timer.secondsSpent;
+  }, [timer.secondsSpent]);
+
+  const saveProgress = (secs) => {
+    updateSecondsSpent(timer.id, secs);
+    if (secs > logged.current) logFocus(timer.title, { seconds: secs - logged.current });
+    logged.current = secs;
+  };
 
   // Pomodoro switched off mid-break: back to focus.
   useEffect(() => {
@@ -61,6 +78,8 @@ function TimerItem({ timer, onPlayChange }) {
     buzz();
     const date = toDateKey();
     incrementReps(timer.id, date);
+    logFocus(timer.title, { seconds: Math.max(0, timer.seconds - logged.current), rounds: 1 }, date);
+    logged.current = 0;
     updateSecondsSpent(timer.id, 0);
     setRound((r) => r + 1);
     if (!timer.pomodoro) {
@@ -129,7 +148,7 @@ function TimerItem({ timer, onPlayChange }) {
         <Col flex={isMobile ? "1 1 100%" : "none"}>
           <Space
             align="center"
-            size="middle"
+            size={isMobile ? "small" : "middle"}
             className={isMobile ? styles.controls_mobile : undefined}
           >
             {onBreak ? (
@@ -148,12 +167,12 @@ function TimerItem({ timer, onPlayChange }) {
                 play={play}
                 seconds={timer.seconds}
                 secondsSpent={timer.secondsSpent}
-                onProgress={(secs) => updateSecondsSpent(timer.id, secs)}
+                onProgress={saveProgress}
                 onFinish={finishRound}
                 className={play ? styles.countdown_play : styles.countdown_pause}
               />
             )}
-            <Space size="small">
+            <Space size={isMobile ? 4 : "small"}>
               <Button
                 type={play ? "primary" : "default"}
                 icon={play ? <PauseCircleFilled /> : <PlayCircleFilled />}
@@ -169,6 +188,14 @@ function TimerItem({ timer, onPlayChange }) {
                   </Button>
                 ) : (
                   <>
+                    <Button
+                      type="link"
+                      size={buttonSize}
+                      icon={<HeatMapOutlined />}
+                      title="History"
+                      aria-label="History"
+                      onClick={() => setShowHistory(true)}
+                    />
                     <Button
                       type="link"
                       size={buttonSize}
@@ -212,6 +239,7 @@ function TimerItem({ timer, onPlayChange }) {
         </Col>
       </Row>
       <TimerCopy timer={timer} open={showCopy} onClose={() => setShowCopy(false)} />
+      <TimerHistory open={showHistory} timer={timer} onClose={() => setShowHistory(false)} />
       <TimerForm
         open={showEdit}
         title="Edit timer"
