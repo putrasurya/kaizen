@@ -18,6 +18,19 @@ export class DriveError extends Error {
   }
 }
 
+// Google's own explanation, e.g. "Google Drive API has not been used in
+// project 123 before or it is disabled. Enable it by visiting ...".
+async function reason(response) {
+  let detail = "";
+  try {
+    const body = await response.json();
+    detail = body?.error?.message ?? "";
+  } catch {
+    // No readable body.
+  }
+  return `Google Drive answered ${response.status}${detail ? `: ${detail}` : "."}`;
+}
+
 async function call(token, url, options = {}) {
   let response;
   try {
@@ -26,7 +39,7 @@ async function call(token, url, options = {}) {
     throw new DriveError("Can't reach Google Drive. Check your connection.", 0);
   }
   if (response.status === 401) throw new AuthError("Signed out of Google.");
-  if (!response.ok) throw new DriveError(`Google Drive answered ${response.status}.`, response.status);
+  if (!response.ok) throw new DriveError(await reason(response), response.status);
   return response;
 }
 
