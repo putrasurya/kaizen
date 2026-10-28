@@ -31,21 +31,23 @@ One **day picker** drives the whole page. Today is selected by default, and a do
 ### Keep it private and safe
 
 - **Privacy lock** (🔒 in the header): An optional 4-digit PIN that hides Kaizen when you open it or come back to it (immediately, after 1 minute or after 5 minutes). The screen is covered as soon as you leave the app, and running timers keep going underneath. After 5 wrong tries each further one means a wait, starting at 30 seconds. A forgotten PIN can't be recovered: the only way back in is erasing all Kaizen data on the device, which you agree to when setting it up.
+- **Sync with Google Drive** (☁️ in the header): Sign in with Google to keep Kaizen the same on all your devices. Data goes into a hidden Kaizen folder in your own Drive (scope `drive.appdata`): Kaizen can't see your other files and there's no Kaizen server. It syncs when the app opens or comes back on screen, a few seconds after a change, and every few minutes. The same thing edited on two devices keeps the latest edit, while counts (reps, focus time, routine taps) from both devices add up. Deleted items stay deleted (a backup restored with sync on comes back as new items). Each round's progress and the PIN lock stay on each device. Each device writes its own file in that folder and reads the others', so uploads never overwrite each other. A second device that already has data asks whether to use Drive's data or combine both (the same item on both keeps the higher count); either way its data is kept aside first and can be downloaded as a backup from the sync screen. Google's sign-in lasts about an hour without a server, so after that syncing waits for a tap on "Continue syncing".
 - **Backup & restore** (💾 in the header): Download everything as `kaizen-backup-YYYY-MM-DD.json`, and restore it on this or another device. Restoring shows what's in the file and asks before replacing anything, offers Undo afterwards, upgrades older backups, and leaves your PIN as it is.
 - **Installable PWA**: Works offline and can be installed on desktop or mobile, with a prompt when a new version is available.
 - **Responsive**: A single column with larger touch targets on phones; two columns on wider screens.
 
 ## 🔐 How your data is stored
 
-- All data lives in your browser's **localStorage**, on this device only. There's no account, no server and no tracking.
-- Each browser and device has its own copy; they don't sync. Use **Backup & restore** to move data between devices.
+- All data lives in your browser's **localStorage**. There's no account, no Kaizen server and no tracking.
+- Each browser and device has its own copy. Turn on **Sync with Google Drive** to keep them in step (a copy then also lives in your Drive's hidden app folder), or use **Backup & restore** to move data by hand.
 - Clearing site data in the browser deletes everything. Keep a recent backup.
+- With sync on, a device whose data is wiped (or erased after a forgotten PIN) gets it back by signing in to Google again. That also means anyone who can use your Google account on a device can get your Kaizen data.
+- Use Kaizen in one tab at a time: tabs don't see each other's changes, so the last one to save wins (with or without sync).
 - Data is **not encrypted**, and neither are backup files. The privacy lock keeps out people who pick up your device; it isn't encryption. Only a salted PBKDF2 hash of the PIN is stored, never the PIN itself.
 - The saved format is versioned and migrated automatically when the app updates, so older data and older backups keep working.
 
 ## 🗺️ Roadmap
 
-- **Sync between devices** through a hidden folder in your own Google Drive (planned after backup & restore; needs per-item merge support first)
 - **Notifications**: in-app first, then push reminders ([#47](https://github.com/putrasurya/kaizen/issues/47))
 - **Unlock with fingerprint or face** ([#51](https://github.com/putrasurya/kaizen/issues/51))
 - **Timers that keep running** through a browser reload ([#12](https://github.com/putrasurya/kaizen/issues/12))
@@ -70,7 +72,13 @@ cd kaizen
 npm install
 ```
 
-3. Start the development server:
+3. (Optional) To try Google Drive sync, create `.env.local` with a Google OAuth client ID (Web application, with `http://localhost:5173` as an authorized JavaScript origin and the Drive API enabled):
+```bash
+VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+```
+Without it, the sync button is simply hidden. Deployments set the same variable (Vercel project settings; a GitHub Actions variable for the workflow build).
+
+4. Start the development server:
 ```bash
 npm start
 ```
@@ -126,6 +134,12 @@ src/
 │   ├── store.jsx              # App state, reducer, persistence, migrations, backups
 │   ├── day.jsx                # Selected day and today's date
 │   └── privacy.jsx            # Lock state, hide on leave, re-lock timing
+├── sync/
+│   ├── engine.js              # Records changes and merges two devices' copies
+│   ├── cycle.js               # One sync: read Drive, merge, apply, write back
+│   ├── drive.js               # The sync file in Drive's hidden app folder
+│   ├── google-auth.js         # Google sign-in (token flow, no server)
+│   └── SyncProvider.jsx       # When to sync, status for the UI
 ├── utilities/
 │   ├── auto-tap.js            # Auto tap counts, worked out from time
 │   ├── habit-helper.js        # Week math, balances, day summaries

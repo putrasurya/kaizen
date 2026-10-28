@@ -16,6 +16,8 @@ import LockScreen from "./components/LockScreen";
 import PrivacySettings from "./components/PrivacySettings";
 import BackupSettings from "./components/BackupSettings";
 import Milestones from "./components/Milestones";
+import SyncSettings, { SyncButton } from "./components/SyncSettings";
+import { SyncProvider } from "./sync/SyncProvider";
 
 const { Title, Text } = Typography;
 
@@ -42,6 +44,7 @@ function AppContent() {
   const { generation } = useContext(store);
   const [backupOpen, setBackupOpen] = useState(false);
   const [milestonesOpen, setMilestonesOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
   const hidden = locked || covered;
 
   return (
@@ -73,6 +76,7 @@ function AppContent() {
               title="Backup & restore"
               onClick={() => setBackupOpen(true)}
             />
+            <SyncButton onClick={() => setSyncOpen(true)} />
             <PrivacyButton />
           </Space>
         </Row>
@@ -104,6 +108,7 @@ function AppContent() {
       {/* Outside the keyed page, so it stays open (with its Undo) after a restore. */}
       <BackupSettings open={backupOpen} onClose={() => setBackupOpen(false)} />
       <Milestones open={milestonesOpen} onClose={() => setMilestonesOpen(false)} />
+      <SyncSettings open={syncOpen} onClose={() => setSyncOpen(false)} />
       <LockScreen />
     </DayProvider>
   );
@@ -112,7 +117,9 @@ function AppContent() {
 function App() {
   return (
     <PrivacyProvider>
-      <AppContent />
+      <SyncProvider>
+        <AppContent />
+      </SyncProvider>
     </PrivacyProvider>
   );
 }

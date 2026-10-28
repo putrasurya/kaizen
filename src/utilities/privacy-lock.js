@@ -105,7 +105,10 @@ export function writeLock(lock) {
 
 // "Forgot PIN": everything Kaizen keeps on this device, gone.
 export function eraseAllData() {
-  for (const key of [appKey(), `${appKey()}.backup`, `${appKey()}.before-import`, `${appKey()}.last-export`, lockKey()]) {
+  // Google Drive keeps its copy: turning sync back on brings the data back.
+  const keys = [appKey(), `${appKey()}.backup`, `${appKey()}.before-import`, `${appKey()}.last-export`, lockKey()];
+  keys.push(`${appKey()}.sync`, `${appKey()}.sync-meta`, `${appKey()}.before-sync`);
+  for (const key of keys) {
     try {
       window.localStorage.removeItem(key);
     } catch {

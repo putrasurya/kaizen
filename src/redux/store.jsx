@@ -38,13 +38,28 @@ const emptyState = () => ({
 
 // Ids used to be plain Date.now() values, which collide when several records
 // are created in one action (copies, migration). Keep them numeric and
-// time-based, but strictly increasing past every id already in use.
+// time-based, but strictly increasing past every id already in use. With
+// sync, two devices can create records at the same moment, so new ids are in
+// microseconds with random low digits (older millisecond ids stay as they are).
 function idGenerator(items) {
   let last = items.reduce((max, item) => (Number.isFinite(item.id) ? Math.max(max, item.id) : max), 0);
   return () => {
-    last = Math.max(Date.now(), last + 1);
+    last = Math.max(Date.now() * 1000 + Math.floor(Math.random() * 1000), last + 1);
     return last;
   };
+}
+
+// The same data with new ids for every record. Restoring a backup while sync
+// is on uses this: records deleted earlier stay deleted everywhere, so a
+// restored copy of one has to be a new record to come back.
+export function withFreshIds(state) {
+  const next = { ...state };
+  for (const list of ["timers", "notes", "todos", "habits", "milestones", "embeds"]) {
+    if (!Array.isArray(state[list])) continue;
+    const nextId = idGenerator(state[list]);
+    next[list] = state[list].map((record) => ({ ...record, id: nextId() }));
+  }
+  return next;
 }
 
 // Gives every record a unique numeric id, keeping the first use of each valid
@@ -292,6 +307,15 @@ function migrateState(parsed, today) {
     focus: version < 9 ? focusFromReps(timers) : sanitizeFocus(parsed.focus),
     embeds: Array.isArray(parsed.embeds) ? parsed.embeds : [],
   };
+}
+
+// Cleans up data from elsewhere that's already in the current format (synced
+// data): fills in defaults and drops anything unusable, without migrating.
+// (A future version that derives new data in a migration must not rely on it
+// running for synced data: devices on the older version keep writing the old
+// shape.)
+export function normalizeState(raw, today = getTodayKey()) {
+  return migrateState({ ...raw, version: STATE_VERSION }, today);
 }
 
 function persist(storageKey, state) {
@@ -742,6 +766,15 @@ function reducer(state, action) {
       break;
     }
 
+    // Data merged from Google Drive. `payload.apply` works it out from the
+    // latest state, so a change that happened while the sync was on its way
+    // isn't lost. Unlike a restore, the page isn't rebuilt (that would
+    // interrupt typing or a running timer); sections follow it.
+    case "applySync": {
+      updatedState = payload.apply(state);
+      break;
+    }
+
     default: {
       updatedState = state;
     }
@@ -906,6 +939,10 @@ function StoreProvider({ children }) {
   };
 
   // Restoring a backup: everything is replaced at once.
+  const applySync = (apply) => {
+    dispatch({ type: "applySync", payload: { apply } });
+  };
+
   const replaceAll = (next) => {
     dispatch({ type: "replaceAll", payload: { state: next } });
     setGeneration((n) => n + 1);
@@ -960,6 +997,7 @@ function StoreProvider({ children }) {
         fullState: state,
         generation,
         replaceAll,
+        applySync,
         setJournalEntry,
         embeds: state.embeds,
         addEmbed,
