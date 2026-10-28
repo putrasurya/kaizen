@@ -3,6 +3,7 @@ import { DAYS, EVERY_DAY, getTodayKey, isDateKey, isDayKey, toDateKey, weekDateO
 import { isHabitKind, toTarget } from "../utilities/habit-helper";
 import { toAutoSettings, withAutoSettings } from "../utilities/auto-tap";
 import { toPomodoro } from "../utilities/pomodoro";
+import { addFocus, focusFromReps, focusKey, renameFocus, sanitizeFocus } from "../utilities/focus";
 
 // Bump when the persisted shape changes, and add a step to migrateState().
 // 1 (implicit, no `version` field): timers had no `day`.
@@ -14,7 +15,9 @@ import { toPomodoro } from "../utilities/pomodoro";
 // 7: a `milestones` list (achieved milestones and goals for the year).
 // 8: timers count reps per date (`repsOn`) and can have Pomodoro breaks
 //    (`pomodoro`). `reps` stays as the all-time total.
-export const STATE_VERSION = 8;
+// 9: a `focus` log of time focused and rounds finished per date and activity
+//    (see utilities/focus), filled in from the timers' `repsOn` on upgrade.
+export const STATE_VERSION = 9;
 
 export const MILESTONE_TITLE_MAX = 120;
 export const MILESTONE_NOTE_MAX = 500;
@@ -29,6 +32,7 @@ const emptyState = () => ({
   habits: [],
   journal: {},
   milestones: [],
+  focus: {},
   embeds: [],
 });
 
@@ -284,6 +288,8 @@ function migrateState(parsed, today) {
     journal: sanitizeJournal(parsed.journal),
     // v6 -> v7 only adds the list, so older data simply has none yet.
     milestones: withUniqueIds(sanitizeList(parsed.milestones, sanitizeMilestone))[0],
+    // v8 -> v9: start the focus log from the rounds already counted per date.
+    focus: version < 9 ? focusFromReps(timers) : sanitizeFocus(parsed.focus),
     embeds: Array.isArray(parsed.embeds) ? parsed.embeds : [],
   };
 }
@@ -435,8 +441,17 @@ function reducer(state, action) {
       // Title, focus length and Pomodoro settings. A new length starts the
       // current round over, since progress against the old length means little.
       const title = typeof payload.title === "string" ? payload.title.trim() : "";
+      // A rename takes the activity's focus history along, unless another
+      // timer (another weekday's copy) still goes by the old name.
+      const edited = state.timers.find((timer) => timer.id === payload.id);
+      const oldName = edited?.title ?? "";
+      const stillUsed = state.timers.some(
+        (timer) => timer.id !== payload.id && focusKey(timer.title) === focusKey(oldName)
+      );
+      const focus = edited && title && title !== oldName && !stillUsed ? renameFocus(state.focus, oldName, title) : state.focus;
       updatedState = {
         ...state,
+        focus,
         timers: state.timers.map((timer) => {
           if (timer.id !== payload.id) return timer;
           const seconds = toCount(payload.seconds, timer.seconds) || timer.seconds;
@@ -451,6 +466,12 @@ function reducer(state, action) {
           };
         }),
       };
+      break;
+    }
+
+    // Focused time and/or finished rounds for an activity on a date.
+    case "logFocus": {
+      updatedState = { ...state, focus: addFocus(state.focus, payload) };
       break;
     }
 
@@ -793,6 +814,11 @@ function StoreProvider({ children }) {
     });
   };
 
+  // Adds to the focus log: `seconds` focused and/or `rounds` finished.
+  const logFocus = (title, { seconds = 0, rounds = 0 }, date = toDateKey()) => {
+    dispatch({ type: "logFocus", payload: { title, seconds, rounds, date } });
+  };
+
   // `day` is a weekday key, or EVERY_DAY to show the reminder on all days.
   const addNote = (content, day = getTodayKey()) => {
     dispatch({
@@ -938,7 +964,9 @@ function StoreProvider({ children }) {
         embeds: state.embeds,
         addEmbed,
         deleteEmbed,
-        incrementReps
+        incrementReps,
+        focus: state.focus,
+        logFocus,
       }}
     >
       {children}

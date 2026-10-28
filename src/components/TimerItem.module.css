@@ -24,6 +24,13 @@
   margin-top: 4px;
 }
 
+/* Five icon buttons next to the countdown on a phone: a little narrower,
+   still full height for touch. */
+.controls_mobile :global(.ant-btn-link.ant-btn-icon-only) {
+  width: 32px;
+  min-width: 32px;
+}
+
 .countdown_break {
   color: #49aa19 !important;
   margin: 0 !important;

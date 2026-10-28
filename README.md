@@ -13,6 +13,7 @@ One **day picker** drives the whole page. Today is selected by default, and a do
 - **Todo**: A checklist per weekday. Ticks only count for this week, so every week starts unchecked again. Edit in place, or copy a todo to other weekdays.
 - **Timers**: Countdown timers per weekday. When one reaches zero it buzzes, adds a rep and goes back to full time, ready for the next round. Reps are counted per day ("3 reps today · 1 h 30 min") and only go up; the all-time total is in the tooltip. Edit a timer's title and length, start a round over, copy a timer to other days, and see the total time left for the day plus how many hours are left in today.
 - **Pomodoro**: Turn on Pomodoro breaks for a timer: a short break after each focus round and a long one every few rounds (5 / 15 min every 4 rounds by default). Breaks can start by themselves or wait for play, and can be skipped. Finished rounds show as 🍅 with the time focused today, and dots show how far you are from the long break.
+- **Focus history**: Each timer has a History button that opens a heatmap of time focused per day (12 weeks on a phone, a year on a computer), with a streak, this week against last week, and how many planned days you did. Days a timer isn't planned on are striped so they never look like misses; a day counts as done with at least one finished round. Timers with the same name on different weekdays share one history, and it stays when a timer is deleted or edited. Only focus time is counted, not breaks.
 - **Reminders**: Quick notes for a weekday that come back every week on that day, or for every day (tagged "Every day" and listed first on all days).
 
 ### Build habits
@@ -107,6 +108,7 @@ src/
 │   ├── AppTimer.jsx           # Timer list and time-left summary
 │   ├── TimerItem.jsx          # A single timer: rounds, reps, Pomodoro breaks
 │   ├── TimerForm.jsx          # Add / edit timer dialog
+│   ├── TimerHistory.jsx       # Per-timer focus heatmap
 │   ├── TimerCountdown.jsx     # Countdown clock (keeps time in the background)
 │   ├── AppNote.jsx            # Reminders
 │   ├── AppHabits.jsx          # Daily habits and Routines (incl. auto tap status)
@@ -129,6 +131,7 @@ src/
 │   ├── habit-helper.js        # Week math, balances, day summaries
 │   ├── privacy-lock.js        # PIN hashing, wait times, erase
 │   ├── day-helper.js          # Weekday and date helpers
+│   ├── focus.js               # Focus log: time and rounds per day, streaks
 │   ├── time-helper.js         # Time formatting
 │   └── useNow.js              # Re-render on a clock tick and on focus
 ├── App.jsx                    # Main layout and header buttons

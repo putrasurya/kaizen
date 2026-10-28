@@ -228,13 +228,13 @@ describe('loadState (persistence and migration)', () => {
   });
 
   test('missing storage gives an empty current-version state', () => {
-    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], journal: {}, milestones: [], embeds: [] });
+    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], journal: {}, milestones: [], focus: {}, embeds: [] });
   });
 
   test('unparseable storage does not crash and is backed up instead of lost', () => {
     window.localStorage.setItem(KEY, '{"timers": [oops');
 
-    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], journal: {}, milestones: [], embeds: [] });
+    expect(loadState(KEY, 'mon')).toEqual({ version: STATE_VERSION, timers: [], notes: [], todos: [], habits: [], journal: {}, milestones: [], focus: {}, embeds: [] });
     expect(window.localStorage.getItem(`${KEY}.backup`)).toBe('{"timers": [oops');
   });
 
@@ -630,6 +630,7 @@ describe('backup round trip', () => {
           auto: { direction: 'plus', everyMinutes: 60, maxPerDay: 8, since: 1789000000000, frozenThrough: '2026-09-30' } },
       ],
       journal: { '2026-10-01': 'Dear diary' }, embeds: [],
+      focus: { '2026-10-05': { focus: { title: 'Focus', seconds: 150, rounds: 2 } } },
       milestones: [
         { id: 6, title: 'Got the AWS certification', note: 'Second try', achievedOn: '2026-10-08', year: 2026, kept: false },
         { id: 7, title: 'Visit Japan', note: '', achievedOn: null, year: 2026, kept: false },
@@ -665,3 +666,83 @@ describe('every-day reminders', () => {
     expect((restored.state ?? restored).notes).toEqual([{ id: 1, day: 'every', content: 'drink water' }]);
   });
 });
+
+describe('v9: focus log', () => {
+  const KEY = import.meta.env.VITE_STORAGEKEY;
+  const timer = (id, day, title, seconds, repsOn) => ({ id, day, title, seconds, secondsSpent: 0, initial: seconds, reps: 0, repsOn });
+
+  test('is filled in from the rounds already counted, grouping weekday copies by name', () => {
+    window.localStorage.setItem(KEY, JSON.stringify({
+      version: 8,
+      timers: [
+        timer(1, 'mon', 'Deep work', 1500, { '2026-10-19': 2, '2026-10-26': 1 }),
+        timer(2, 'tue', ' deep Work ', 1500, { '2026-10-20': 3 }),
+        timer(3, 'mon', 'Reading', 600, { '2026-10-26': 1 }),
+      ],
+    }));
+    expect(loadState(KEY, 'wed').focus).toEqual({
+      '2026-10-19': { 'deep work': { title: 'Deep work', seconds: 3000, rounds: 2 } },
+      '2026-10-20': { 'deep work': { title: 'deep Work', seconds: 4500, rounds: 3 } },
+      '2026-10-26': {
+        'deep work': { title: 'Deep work', seconds: 1500, rounds: 1 },
+        reading: { title: 'Reading', seconds: 600, rounds: 1 },
+      },
+    });
+  });
+
+  test('drops broken entries on load', () => {
+    window.localStorage.setItem(KEY, JSON.stringify({
+      version: 9,
+      focus: { 'not a date': {}, '2026-10-26': { a: { title: 'A', seconds: -5, rounds: 0 }, b: { seconds: 60.7, rounds: 1 } } },
+    }));
+    expect(loadState(KEY, 'wed').focus).toEqual({ '2026-10-26': { b: { title: 'b', seconds: 60, rounds: 1 } } });
+  });
+});
+
+describe('focus log in the store', () => {
+  function FocusHarness() {
+    const ctx = useContext(store);
+    return (
+      <div>
+        <button onClick={() => ctx.addTimer('Deep work', 1500, 0, false, 'mon')}>addMon</button>
+        <button onClick={() => ctx.addTimer('Deep work', 1500, 0, false, 'tue')}>addTue</button>
+        <button onClick={() => ctx.logFocus('Deep work', { seconds: 600 }, '2026-10-26')}>log</button>
+        <button onClick={() => ctx.logFocus('Deep work', { seconds: 900, rounds: 1 }, '2026-10-26')}>finish</button>
+        <button onClick={() => ctx.editTimer(ctx.timers[ctx.timers.length - 1].id, { title: 'Writing' })}>renameFirst</button>
+        <button onClick={() => ctx.deleteTimer(ctx.timers[0].id)}>deleteNewest</button>
+        <pre data-testid="focus">{JSON.stringify(ctx.focus)}</pre>
+      </div>
+    );
+  }
+  const focusShown = () => JSON.parse(screen.getByTestId('focus').textContent);
+
+  test('adds up time and rounds, and keeps them when the timer is deleted', async () => {
+    const user = userEvent.setup();
+    render(<StoreProvider><FocusHarness /></StoreProvider>);
+    await user.click(screen.getByText('addMon'));
+    await user.click(screen.getByText('log'));
+    await user.click(screen.getByText('finish'));
+    await user.click(screen.getByText('deleteNewest'));
+    expect(focusShown()).toEqual({ '2026-10-26': { 'deep work': { title: 'Deep work', seconds: 1500, rounds: 1 } } });
+  });
+
+  test('a rename takes the history along when no other timer has the old name', async () => {
+    const user = userEvent.setup();
+    render(<StoreProvider><FocusHarness /></StoreProvider>);
+    await user.click(screen.getByText('addMon'));
+    await user.click(screen.getByText('finish'));
+    await user.click(screen.getByText('renameFirst'));
+    expect(focusShown()).toEqual({ '2026-10-26': { writing: { title: 'Writing', seconds: 900, rounds: 1 } } });
+  });
+
+  test('a rename leaves the history with the old name while another weekday still uses it', async () => {
+    const user = userEvent.setup();
+    render(<StoreProvider><FocusHarness /></StoreProvider>);
+    await user.click(screen.getByText('addMon'));
+    await user.click(screen.getByText('addTue'));
+    await user.click(screen.getByText('finish'));
+    await user.click(screen.getByText('renameFirst'));
+    expect(focusShown()).toEqual({ '2026-10-26': { 'deep work': { title: 'Deep work', seconds: 900, rounds: 1 } } });
+  });
+});
+
