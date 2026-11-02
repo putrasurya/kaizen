@@ -19,13 +19,13 @@ const { Title } = Typography;
 //   straight away instead of waiting for a slowed-down tick.
 // - Progress is reported when the app goes to the background, on pause, and
 //   at least once a minute while running, so a reload loses little.
-export default function Countdown({ play, seconds, secondsSpent, onProgress, onFinish, className }) {
+export default function Countdown({ play, seconds, secondsSpent, onProgress, onFinish, onRun, className }) {
   const [spentMs, setSpentMs] = useState(() => secondsToMillis(secondsSpent || 0));
   const run = useRef(null); // { startedAt, baseMs } while playing
   const timer = useRef();
   const lastSaved = useRef(secondsSpent || 0);
   const latest = useRef();
-  latest.current = { seconds, onProgress, onFinish };
+  latest.current = { seconds, onProgress, onFinish, onRun };
 
   const elapsed = () => run.current.baseMs + (Date.now() - run.current.startedAt);
 
@@ -43,6 +43,7 @@ export default function Countdown({ play, seconds, secondsSpent, onProgress, onF
     if (ms >= total) {
       run.current = null;
       setSpentMs(total);
+      latest.current.onRun?.(null);
       latest.current.onFinish?.();
       return;
     }
@@ -58,6 +59,9 @@ export default function Countdown({ play, seconds, secondsSpent, onProgress, onF
     if (play) {
       run.current = { startedAt: Date.now(), baseMs: secondsToMillis(secondsSpent || 0) };
       lastSaved.current = secondsSpent || 0;
+      // When it will reach zero, for anything outside the card that shows
+      // the time (the browser tab's title).
+      latest.current.onRun?.(run.current.startedAt + secondsToMillis(seconds) - run.current.baseMs);
       tick();
     } else if (run.current) {
       const ms = elapsed();
@@ -65,8 +69,12 @@ export default function Countdown({ play, seconds, secondsSpent, onProgress, onF
       clearTimeout(timer.current);
       setSpentMs(ms);
       save(millisToSeconds(ms));
+      latest.current.onRun?.(null);
     }
   }, [play]);
+
+  // Gone (deleted, or swapped for the break clock) while running.
+  useEffect(() => () => latest.current.onRun?.(null), []);
 
   // While paused, the display follows the saved progress: on first render
   // (including when the browser reloads the app after it was in the
