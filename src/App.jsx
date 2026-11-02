@@ -18,6 +18,7 @@ import BackupSettings from "./components/BackupSettings";
 import Milestones from "./components/Milestones";
 import SyncSettings, { SyncButton } from "./components/SyncSettings";
 import { SyncProvider } from "./sync/SyncProvider";
+import TabTitle from "./components/TabTitle";
 
 const { Title, Text } = Typography;
 
@@ -110,6 +111,7 @@ function AppContent() {
       <Milestones open={milestonesOpen} onClose={() => setMilestonesOpen(false)} />
       <SyncSettings open={syncOpen} onClose={() => setSyncOpen(false)} />
       <LockScreen />
+      <TabTitle />
     </DayProvider>
   );
 }

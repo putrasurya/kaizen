@@ -15,6 +15,7 @@ import { useDay } from "../redux/day";
 import { toDateKey, weekDateOf } from "../utilities/day-helper";
 import { breakAfter, cyclePosition } from "../utilities/pomodoro";
 import { buzz, unlockAlarm } from "../utilities/buzz";
+import { setRunning } from "../utilities/running-timers";
 import styles from "./TimerItem.module.css";
 import TimerItemReps from "./TimerItemReps";
 import TimerCopy from "./TimerCopy";
@@ -159,6 +160,7 @@ function TimerItem({ timer, onPlayChange }) {
                 secondsSpent={breakSpent}
                 onProgress={setBreakSpent}
                 onFinish={finishBreak}
+                onRun={(endsAt) => setRunning(timer.id, endsAt && { title: timer.title, phase: pause.long ? "long" : "break", endsAt })}
                 className={play ? styles.countdown_break : styles.countdown_pause}
               />
             ) : (
@@ -169,6 +171,7 @@ function TimerItem({ timer, onPlayChange }) {
                 secondsSpent={timer.secondsSpent}
                 onProgress={saveProgress}
                 onFinish={finishRound}
+                onRun={(endsAt) => setRunning(timer.id, endsAt && { title: timer.title, phase: "focus", endsAt })}
                 className={play ? styles.countdown_play : styles.countdown_pause}
               />
             )}
