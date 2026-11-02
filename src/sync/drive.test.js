@@ -43,3 +43,10 @@ test('an expired token is an AuthError; being offline is a DriveError with statu
   vi.spyOn(window, 'fetch').mockResolvedValueOnce(respond(500, {}));
   await expect(findSyncFiles('tok')).rejects.toBeInstanceOf(DriveError);
 });
+
+test('an error shows Google\'s own reason', async () => {
+  vi.spyOn(window, 'fetch').mockResolvedValueOnce(
+    respond(403, { error: { code: 403, message: 'Google Drive API has not been used in project 838738185530 before or it is disabled.' } })
+  );
+  await expect(findSyncFiles('tok')).rejects.toThrow('Google Drive answered 403: Google Drive API has not been used in project 838738185530 before or it is disabled.');
+});
